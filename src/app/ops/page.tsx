@@ -1,6 +1,7 @@
 import fs from "fs/promises";
 import path from "path";
 import Link from "next/link";
+import OpsActions from "./OpsActions";
 
 type FileInfo = {
   name: string;
@@ -157,6 +158,9 @@ export default async function OpsPage({
           </Link>
         )}
       </form>
+
+      {/* Quick Actions */}
+      <OpsActions />
 
       {/* Issues */}
       <section style={{ marginTop: "2rem" }}>
