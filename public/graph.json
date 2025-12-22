@@ -1,0 +1,769 @@
+{
+  "root": "/Users/elicon_mark/Developer/[개발]02_슈퍼개발툴만들기/elicon-neural-map",
+  "generatedAt": "2025-12-22T14:20:50.745Z",
+  "nodes": [
+    {
+      "id": "f1",
+      "label": ".env.local",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "f2",
+      "label": ".github/ISSUE_TEMPLATE/ai_hub_task.md",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "f3",
+      "label": ".github/pull_request_template.md",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "f4",
+      "label": "docs/CHANGELOG.md",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "f5",
+      "label": "docs/COMM_PROTOCOL.md",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "f6",
+      "label": "docs/CONTEXT_PACKET.md",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "f7",
+      "label": "docs/DECISIONS/20251222_REQ-003_sample_decision.md",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "f8",
+      "label": "docs/OPS_USAGE.md",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "f9",
+      "label": "docs/PROMPT_REGISTRY.md",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "f10",
+      "label": "docs/PROOFS/20251222_REQ-003_sample_proof.md",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "f11",
+      "label": "docs/STATE.md",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "f12",
+      "label": "docs/TEMPLATES/DECISION_ADR.md",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "f13",
+      "label": "docs/TEMPLATES/ISSUE_REQ.md",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "f14",
+      "label": "docs/TEMPLATES/PROOF.md",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "f15",
+      "label": "docs/ai-hub/AI_HUB_GOVERNANCE.md",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "f16",
+      "label": "docs/ai-hub/CHANGELOG_AI_HUB.md",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "f17",
+      "label": "docs/ai-hub/PR_COMMENT_TEMPLATES.md",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "f18",
+      "label": "docs/ai-hub/RUNBOOK_DEMO.md",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "f19",
+      "label": "docs/ai-hub/SETUP_CHECKLIST.md",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "f20",
+      "label": "docs/dev_analysis/PROMPT_REGISTRY.md",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "f21",
+      "label": "docs/dev_analysis/README.md",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "f22",
+      "label": "docs/dev_analysis/v1.6_ui_render_analysis.md",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "f23",
+      "label": "docs/dev_analysis/v1.7_ui_render_analysis.md",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "f24",
+      "label": "docs/dev_analysis/v1.8_ui_render_analysis.md",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "f25",
+      "label": "docs/dev_analysis/v1.9_ui_render_analysis.md",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "f26",
+      "label": "docs/dev_analysis/v2.0_imports_dataflow_analysis.md",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "f27",
+      "label": "docs/dev_analysis/v2.1_data_source_styles_analysis.md",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "f28",
+      "label": "docs/dev_analysis/v2.2_interactions_types_analysis.md",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "f29",
+      "label": "docs/protocols/BUILD-FAIL-PATCH-v0.19.md",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "f30",
+      "label": "docs/protocols/BUILD-FAIL-SNAPSHOT-v0.18.md",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "f31",
+      "label": "docs/protocols/CONFLICT-PATCH-v0.17.md",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "f32",
+      "label": "docs/protocols/CONFLICT-SNAPSHOT-v0.16.md",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "f33",
+      "label": "docs/protocols/FINAL-SUMMARY-PACK-v0.22.md",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "f34",
+      "label": "docs/protocols/FIXPACK-v0.1.md",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "f35",
+      "label": "docs/protocols/LINEPATCHPACK-v0.6.md",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "f36",
+      "label": "docs/protocols/MAP-SUSPENSE-FIX-v0.10.md",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "f37",
+      "label": "docs/protocols/MERGE-MAIN-v0.15.md",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "f38",
+      "label": "docs/protocols/NEWCHAT-PACKET-v0.1.md",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "f39",
+      "label": "docs/protocols/NEWCHAT-PACKET-v0.2.md",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "f40",
+      "label": "docs/protocols/NEXTCHAT-STARTER-v0.9.md",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "f41",
+      "label": "docs/protocols/PATCH-v0.13.md",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "f42",
+      "label": "docs/protocols/PATCHSCRIPT-v0.7.md",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "f43",
+      "label": "docs/protocols/PR-DESCRIPTION-FINAL-v0.23.md",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "f44",
+      "label": "docs/protocols/PRPACK-v0.14.md",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "f45",
+      "label": "docs/protocols/PRPACK-v0.8.md",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "f46",
+      "label": "docs/protocols/README.md",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "f47",
+      "label": "docs/protocols/RELEASE-CARD-COPY-v0.25.md",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "f48",
+      "label": "docs/protocols/RELEASE-CARD-TONES-v0.26.md",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "f49",
+      "label": "docs/protocols/RELEASE-NOTES-v0.20.md",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "f50",
+      "label": "docs/protocols/RESOLVE-LINE-v0.12.md",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "f51",
+      "label": "docs/protocols/RESOLVEPACK-v0.5.md",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "f52",
+      "label": "issues/README.md",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "f53",
+      "label": "issues/REQ-003.md",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "f54",
+      "label": "logs/251222_LOCAL-UI-v0.4구현[클로드].md",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "f55",
+      "label": "logs/CHANGELOG.md",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "f56",
+      "label": "next-env.d.ts",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "f57",
+      "label": "next.config.js",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "f58",
+      "label": "ops/new_decision.sh",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "f59",
+      "label": "ops/new_issue.sh",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "f60",
+      "label": "ops/new_proof.sh",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "f61",
+      "label": "package.json",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "f62",
+      "label": "pnpm-lock.yaml",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "f63",
+      "label": "public/graph.json",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "f64",
+      "label": "scripts/scan_repo.mjs",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "f65",
+      "label": "src/app/api/file/route.ts",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "f66",
+      "label": "src/app/data/page.tsx",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "f67",
+      "label": "src/app/layout.tsx",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "f68",
+      "label": "src/app/logic/page.tsx",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "f69",
+      "label": "src/app/map/MapClient.tsx",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "f70",
+      "label": "src/app/map/page.tsx",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "f71",
+      "label": "src/app/ops/OpsActions.tsx",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "f72",
+      "label": "src/app/ops/page.tsx",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "f73",
+      "label": "src/app/ops/today/page.tsx",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "f74",
+      "label": "src/app/ops/view/page.tsx",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "f75",
+      "label": "src/app/page.tsx",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "f76",
+      "label": "src/types/cytoscape-fcose.d.ts",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "f77",
+      "label": "src/types/react-cytoscapejs.d.ts",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "f78",
+      "label": "tools/build-graph.mjs",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "f79",
+      "label": "tools/lib/graph-metrics.mjs",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "f80",
+      "label": "tools/watch-graph.mjs",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "f81",
+      "label": "tsconfig.json",
+      "x": 0,
+      "y": 0
+    }
+  ],
+  "edges": [
+    {
+      "id": "e1",
+      "from": "f1",
+      "to": "f56"
+    },
+    {
+      "id": "e2",
+      "from": "f1",
+      "to": "f57"
+    },
+    {
+      "id": "e3",
+      "from": "f1",
+      "to": "f61"
+    },
+    {
+      "id": "e4",
+      "from": "f1",
+      "to": "f62"
+    },
+    {
+      "id": "e5",
+      "from": "f1",
+      "to": "f81"
+    },
+    {
+      "id": "e6",
+      "from": "f4",
+      "to": "f5"
+    },
+    {
+      "id": "e7",
+      "from": "f4",
+      "to": "f6"
+    },
+    {
+      "id": "e8",
+      "from": "f4",
+      "to": "f8"
+    },
+    {
+      "id": "e9",
+      "from": "f4",
+      "to": "f9"
+    },
+    {
+      "id": "e10",
+      "from": "f4",
+      "to": "f11"
+    },
+    {
+      "id": "e11",
+      "from": "f12",
+      "to": "f13"
+    },
+    {
+      "id": "e12",
+      "from": "f12",
+      "to": "f14"
+    },
+    {
+      "id": "e13",
+      "from": "f15",
+      "to": "f16"
+    },
+    {
+      "id": "e14",
+      "from": "f15",
+      "to": "f17"
+    },
+    {
+      "id": "e15",
+      "from": "f15",
+      "to": "f18"
+    },
+    {
+      "id": "e16",
+      "from": "f15",
+      "to": "f19"
+    },
+    {
+      "id": "e17",
+      "from": "f20",
+      "to": "f21"
+    },
+    {
+      "id": "e18",
+      "from": "f20",
+      "to": "f22"
+    },
+    {
+      "id": "e19",
+      "from": "f20",
+      "to": "f23"
+    },
+    {
+      "id": "e20",
+      "from": "f20",
+      "to": "f24"
+    },
+    {
+      "id": "e21",
+      "from": "f20",
+      "to": "f25"
+    },
+    {
+      "id": "e22",
+      "from": "f20",
+      "to": "f26"
+    },
+    {
+      "id": "e23",
+      "from": "f20",
+      "to": "f27"
+    },
+    {
+      "id": "e24",
+      "from": "f20",
+      "to": "f28"
+    },
+    {
+      "id": "e25",
+      "from": "f29",
+      "to": "f30"
+    },
+    {
+      "id": "e26",
+      "from": "f29",
+      "to": "f31"
+    },
+    {
+      "id": "e27",
+      "from": "f29",
+      "to": "f32"
+    },
+    {
+      "id": "e28",
+      "from": "f29",
+      "to": "f33"
+    },
+    {
+      "id": "e29",
+      "from": "f29",
+      "to": "f34"
+    },
+    {
+      "id": "e30",
+      "from": "f29",
+      "to": "f35"
+    },
+    {
+      "id": "e31",
+      "from": "f29",
+      "to": "f36"
+    },
+    {
+      "id": "e32",
+      "from": "f29",
+      "to": "f37"
+    },
+    {
+      "id": "e33",
+      "from": "f29",
+      "to": "f38"
+    },
+    {
+      "id": "e34",
+      "from": "f29",
+      "to": "f39"
+    },
+    {
+      "id": "e35",
+      "from": "f29",
+      "to": "f40"
+    },
+    {
+      "id": "e36",
+      "from": "f29",
+      "to": "f41"
+    },
+    {
+      "id": "e37",
+      "from": "f29",
+      "to": "f42"
+    },
+    {
+      "id": "e38",
+      "from": "f29",
+      "to": "f43"
+    },
+    {
+      "id": "e39",
+      "from": "f29",
+      "to": "f44"
+    },
+    {
+      "id": "e40",
+      "from": "f29",
+      "to": "f45"
+    },
+    {
+      "id": "e41",
+      "from": "f29",
+      "to": "f46"
+    },
+    {
+      "id": "e42",
+      "from": "f29",
+      "to": "f47"
+    },
+    {
+      "id": "e43",
+      "from": "f29",
+      "to": "f48"
+    },
+    {
+      "id": "e44",
+      "from": "f29",
+      "to": "f49"
+    },
+    {
+      "id": "e45",
+      "from": "f29",
+      "to": "f50"
+    },
+    {
+      "id": "e46",
+      "from": "f29",
+      "to": "f51"
+    },
+    {
+      "id": "e47",
+      "from": "f52",
+      "to": "f53"
+    },
+    {
+      "id": "e48",
+      "from": "f54",
+      "to": "f55"
+    },
+    {
+      "id": "e49",
+      "from": "f58",
+      "to": "f59"
+    },
+    {
+      "id": "e50",
+      "from": "f58",
+      "to": "f60"
+    },
+    {
+      "id": "e51",
+      "from": "f67",
+      "to": "f75"
+    },
+    {
+      "id": "e52",
+      "from": "f69",
+      "to": "f70"
+    },
+    {
+      "id": "e53",
+      "from": "f71",
+      "to": "f72"
+    },
+    {
+      "id": "e54",
+      "from": "f76",
+      "to": "f77"
+    },
+    {
+      "id": "e55",
+      "from": "f78",
+      "to": "f80"
+    }
+  ]
+}
