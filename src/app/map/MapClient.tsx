@@ -142,6 +142,60 @@ function decodeSnap(qs: string): UrlSnap {
   };
 }
 
+// STEP05.10: Snapshot History
+type SavedSnap = {
+  id: string;
+  name: string;
+  url: string;
+  createdAt: string; // ISO
+};
+
+const SNAP_STORE_KEY = "neuralmap_saved_snaps_v1";
+const SNAP_STORE_LIMIT = 30;
+
+function safeParseJSON<T>(s: string | null, fallback: T): T {
+  if (!s) return fallback;
+  try {
+    return JSON.parse(s) as T;
+  } catch {
+    return fallback;
+  }
+}
+
+function loadSavedSnaps(): SavedSnap[] {
+  if (typeof window === "undefined") return [];
+  const raw = window.localStorage.getItem(SNAP_STORE_KEY);
+  const list = safeParseJSON<SavedSnap[]>(raw, []);
+  return Array.isArray(list) ? list : [];
+}
+
+function persistSavedSnaps(list: SavedSnap[]) {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(SNAP_STORE_KEY, JSON.stringify(list));
+}
+
+async function copyText(text: string) {
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch {
+    try {
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      ta.style.position = "fixed";
+      ta.style.left = "-9999px";
+      document.body.appendChild(ta);
+      ta.focus();
+      ta.select();
+      const ok = document.execCommand("copy");
+      document.body.removeChild(ta);
+      return ok;
+    } catch {
+      return false;
+    }
+  }
+}
+
 export default function MapClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -186,6 +240,67 @@ export default function MapClient() {
   const [cyReady, setCyReady] = useState(false);
   const [snapApplied, setSnapApplied] = useState(false);
   const [vpApplied, setVpApplied] = useState(false);
+
+  // STEP05.10: Snapshot History state
+  const [snapName, setSnapName] = useState("");
+  const [savedSnaps, setSavedSnaps] = useState<SavedSnap[]>([]);
+  const [snapMsg, setSnapMsg] = useState("");
+
+  // STEP05.10: Load saved snaps on mount
+  useEffect(() => {
+    setSavedSnaps(loadSavedSnaps());
+  }, []);
+
+  // STEP05.10: Save current snapshot
+  function saveCurrentSnap() {
+    const name = snapName.trim();
+    if (!name) {
+      setSnapMsg("ERROR: 이름을 입력하세요.");
+      return;
+    }
+
+    const url = typeof window !== "undefined" ? window.location.href : "";
+    const newSnap: SavedSnap = {
+      id: `snap_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
+      name,
+      url,
+      createdAt: new Date().toISOString(),
+    };
+
+    const updated = [newSnap, ...savedSnaps].slice(0, SNAP_STORE_LIMIT);
+    persistSavedSnaps(updated);
+    setSavedSnaps(updated);
+    setSnapName("");
+    setSnapMsg(`SAVED: "${name}"`);
+    setTimeout(() => setSnapMsg(""), 3000);
+  }
+
+  // STEP05.10: Copy snapshot URL
+  async function copySnapUrl(u: string) {
+    const ok = await copyText(u);
+    if (ok) {
+      setSnapMsg("URL 복사 완료");
+    } else {
+      setSnapMsg("ERROR: 복사 실패");
+    }
+    setTimeout(() => setSnapMsg(""), 3000);
+  }
+
+  // STEP05.10: Delete snapshot
+  function deleteSnap(id: string) {
+    const updated = savedSnaps.filter((s) => s.id !== id);
+    persistSavedSnaps(updated);
+    setSavedSnaps(updated);
+    setSnapMsg("DELETED");
+    setTimeout(() => setSnapMsg(""), 2000);
+  }
+
+  // STEP05.10: Open snapshot
+  function openSnap(u: string) {
+    if (typeof window !== "undefined") {
+      window.location.href = u;
+    }
+  }
 
   useEffect(() => {
     (async () => {
@@ -1206,6 +1321,167 @@ export default function MapClient() {
                   ))}
                 </div>
               </div>
+            </div>
+          </div>
+
+          {/* STEP05.10: Snapshot History Panel */}
+          <div style={{ padding: 10, borderBottom: "1px solid #1f2937" }}>
+            <div style={{ fontWeight: 700, marginBottom: 8, fontSize: 12 }}>Snapshot History</div>
+
+            {/* Save current snapshot */}
+            <div style={{ display: "flex", gap: 6, marginBottom: 8 }}>
+              <input
+                type="text"
+                value={snapName}
+                onChange={(e) => setSnapName(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && saveCurrentSnap()}
+                placeholder="스냅샷 이름"
+                style={{
+                  flex: 1,
+                  padding: "6px 8px",
+                  background: "#0f172a",
+                  color: "#e5e7eb",
+                  border: "1px solid #263041",
+                  borderRadius: 8,
+                  fontSize: 11,
+                }}
+              />
+              <button
+                onClick={saveCurrentSnap}
+                style={{
+                  padding: "6px 12px",
+                  background: "#7c3aed",
+                  color: "#e5e7eb",
+                  border: "none",
+                  borderRadius: 8,
+                  fontSize: 11,
+                  cursor: "pointer",
+                  fontWeight: 600,
+                  whiteSpace: "nowrap",
+                }}
+              >
+                현재 상태 저장
+              </button>
+            </div>
+
+            {/* Message */}
+            {snapMsg && (
+              <div
+                style={{
+                  padding: "4px 8px",
+                  marginBottom: 8,
+                  borderRadius: 6,
+                  fontSize: 11,
+                  background: snapMsg.startsWith("ERROR")
+                    ? "rgba(239,68,68,0.1)"
+                    : "rgba(34,197,94,0.1)",
+                  color: snapMsg.startsWith("ERROR") ? "#ef4444" : "#22c55e",
+                  border: snapMsg.startsWith("ERROR")
+                    ? "1px solid rgba(239,68,68,0.3)"
+                    : "1px solid rgba(34,197,94,0.3)",
+                }}
+              >
+                {snapMsg}
+              </div>
+            )}
+
+            {/* Saved snapshots list */}
+            <div style={{ maxHeight: 200, overflowY: "auto" }}>
+              {savedSnaps.length === 0 ? (
+                <div
+                  style={{
+                    padding: "12px 8px",
+                    textAlign: "center",
+                    fontSize: 11,
+                    opacity: 0.5,
+                  }}
+                >
+                  저장된 스냅샷이 없습니다.
+                </div>
+              ) : (
+                savedSnaps.map((snap) => (
+                  <div
+                    key={snap.id}
+                    style={{
+                      padding: "6px 8px",
+                      marginBottom: 4,
+                      background: "#0f172a",
+                      border: "1px solid #263041",
+                      borderRadius: 6,
+                      fontSize: 11,
+                    }}
+                  >
+                    <div
+                      style={{
+                        fontWeight: 600,
+                        marginBottom: 4,
+                        color: "#cbd5e1",
+                        whiteSpace: "nowrap",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                      }}
+                    >
+                      {snap.name}
+                    </div>
+                    <div
+                      style={{
+                        fontSize: 10,
+                        opacity: 0.6,
+                        marginBottom: 6,
+                      }}
+                    >
+                      {new Date(snap.createdAt).toLocaleString("ko-KR")}
+                    </div>
+                    <div style={{ display: "flex", gap: 4 }}>
+                      <button
+                        onClick={() => openSnap(snap.url)}
+                        style={{
+                          flex: 1,
+                          padding: "4px 6px",
+                          background: "#1e40af",
+                          color: "#e5e7eb",
+                          border: "none",
+                          borderRadius: 4,
+                          fontSize: 10,
+                          cursor: "pointer",
+                        }}
+                      >
+                        Open
+                      </button>
+                      <button
+                        onClick={() => copySnapUrl(snap.url)}
+                        style={{
+                          flex: 1,
+                          padding: "4px 6px",
+                          background: "#059669",
+                          color: "#e5e7eb",
+                          border: "none",
+                          borderRadius: 4,
+                          fontSize: 10,
+                          cursor: "pointer",
+                        }}
+                      >
+                        Copy
+                      </button>
+                      <button
+                        onClick={() => deleteSnap(snap.id)}
+                        style={{
+                          flex: 1,
+                          padding: "4px 6px",
+                          background: "#dc2626",
+                          color: "#e5e7eb",
+                          border: "none",
+                          borderRadius: 4,
+                          fontSize: 10,
+                          cursor: "pointer",
+                        }}
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </div>
 
