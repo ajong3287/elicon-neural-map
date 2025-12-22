@@ -1,0 +1,527 @@
+{
+  "root": "/Users/elicon_mark/Developer/[개발]02_슈퍼개발툴만들기/elicon-neural-map",
+  "generatedAt": "2025-12-22T15:14:38.885Z",
+  "nodes": [
+    {
+      "id": "p:.env.local",
+      "label": ".env.local",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "p:.github/ISSUE_TEMPLATE/ai_hub_task.md",
+      "label": ".github/ISSUE_TEMPLATE/ai_hub_task.md",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "p:.github/pull_request_template.md",
+      "label": ".github/pull_request_template.md",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "p:2/public/graph.json",
+      "label": "2/public/graph.json",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "p:amp",
+      "label": "amp",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "p:docs/CHANGELOG.md",
+      "label": "docs/CHANGELOG.md",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "p:docs/COMM_PROTOCOL.md",
+      "label": "docs/COMM_PROTOCOL.md",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "p:docs/CONTEXT_PACKET.md",
+      "label": "docs/CONTEXT_PACKET.md",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "p:docs/DECISIONS/20251222_REQ-003_sample_decision.md",
+      "label": "docs/DECISIONS/20251222_REQ-003_sample_decision.md",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "p:docs/OPS_USAGE.md",
+      "label": "docs/OPS_USAGE.md",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "p:docs/PROMPT_REGISTRY.md",
+      "label": "docs/PROMPT_REGISTRY.md",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "p:docs/PROOFS/20251222_REQ-003_sample_proof.md",
+      "label": "docs/PROOFS/20251222_REQ-003_sample_proof.md",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "p:docs/STATE.md",
+      "label": "docs/STATE.md",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "p:docs/TEMPLATES/DECISION_ADR.md",
+      "label": "docs/TEMPLATES/DECISION_ADR.md",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "p:docs/TEMPLATES/ISSUE_REQ.md",
+      "label": "docs/TEMPLATES/ISSUE_REQ.md",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "p:docs/TEMPLATES/PROOF.md",
+      "label": "docs/TEMPLATES/PROOF.md",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "p:docs/ai-hub/AI_HUB_GOVERNANCE.md",
+      "label": "docs/ai-hub/AI_HUB_GOVERNANCE.md",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "p:docs/ai-hub/CHANGELOG_AI_HUB.md",
+      "label": "docs/ai-hub/CHANGELOG_AI_HUB.md",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "p:docs/ai-hub/PR_COMMENT_TEMPLATES.md",
+      "label": "docs/ai-hub/PR_COMMENT_TEMPLATES.md",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "p:docs/ai-hub/RUNBOOK_DEMO.md",
+      "label": "docs/ai-hub/RUNBOOK_DEMO.md",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "p:docs/ai-hub/SETUP_CHECKLIST.md",
+      "label": "docs/ai-hub/SETUP_CHECKLIST.md",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "p:docs/dev_analysis/PROMPT_REGISTRY.md",
+      "label": "docs/dev_analysis/PROMPT_REGISTRY.md",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "p:docs/dev_analysis/README.md",
+      "label": "docs/dev_analysis/README.md",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "p:docs/dev_analysis/v1.6_ui_render_analysis.md",
+      "label": "docs/dev_analysis/v1.6_ui_render_analysis.md",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "p:docs/dev_analysis/v1.7_ui_render_analysis.md",
+      "label": "docs/dev_analysis/v1.7_ui_render_analysis.md",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "p:docs/dev_analysis/v1.8_ui_render_analysis.md",
+      "label": "docs/dev_analysis/v1.8_ui_render_analysis.md",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "p:docs/dev_analysis/v1.9_ui_render_analysis.md",
+      "label": "docs/dev_analysis/v1.9_ui_render_analysis.md",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "p:docs/dev_analysis/v2.0_imports_dataflow_analysis.md",
+      "label": "docs/dev_analysis/v2.0_imports_dataflow_analysis.md",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "p:docs/dev_analysis/v2.1_data_source_styles_analysis.md",
+      "label": "docs/dev_analysis/v2.1_data_source_styles_analysis.md",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "p:docs/dev_analysis/v2.2_interactions_types_analysis.md",
+      "label": "docs/dev_analysis/v2.2_interactions_types_analysis.md",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "p:docs/protocols/BUILD-FAIL-PATCH-v0.19.md",
+      "label": "docs/protocols/BUILD-FAIL-PATCH-v0.19.md",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "p:docs/protocols/BUILD-FAIL-SNAPSHOT-v0.18.md",
+      "label": "docs/protocols/BUILD-FAIL-SNAPSHOT-v0.18.md",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "p:docs/protocols/CONFLICT-PATCH-v0.17.md",
+      "label": "docs/protocols/CONFLICT-PATCH-v0.17.md",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "p:docs/protocols/CONFLICT-SNAPSHOT-v0.16.md",
+      "label": "docs/protocols/CONFLICT-SNAPSHOT-v0.16.md",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "p:docs/protocols/FINAL-SUMMARY-PACK-v0.22.md",
+      "label": "docs/protocols/FINAL-SUMMARY-PACK-v0.22.md",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "p:docs/protocols/FIXPACK-v0.1.md",
+      "label": "docs/protocols/FIXPACK-v0.1.md",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "p:docs/protocols/LINEPATCHPACK-v0.6.md",
+      "label": "docs/protocols/LINEPATCHPACK-v0.6.md",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "p:docs/protocols/MAP-SUSPENSE-FIX-v0.10.md",
+      "label": "docs/protocols/MAP-SUSPENSE-FIX-v0.10.md",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "p:docs/protocols/MERGE-MAIN-v0.15.md",
+      "label": "docs/protocols/MERGE-MAIN-v0.15.md",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "p:docs/protocols/NEWCHAT-PACKET-v0.1.md",
+      "label": "docs/protocols/NEWCHAT-PACKET-v0.1.md",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "p:docs/protocols/NEWCHAT-PACKET-v0.2.md",
+      "label": "docs/protocols/NEWCHAT-PACKET-v0.2.md",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "p:docs/protocols/NEXTCHAT-STARTER-v0.9.md",
+      "label": "docs/protocols/NEXTCHAT-STARTER-v0.9.md",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "p:docs/protocols/PATCH-v0.13.md",
+      "label": "docs/protocols/PATCH-v0.13.md",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "p:docs/protocols/PATCHSCRIPT-v0.7.md",
+      "label": "docs/protocols/PATCHSCRIPT-v0.7.md",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "p:docs/protocols/PR-DESCRIPTION-FINAL-v0.23.md",
+      "label": "docs/protocols/PR-DESCRIPTION-FINAL-v0.23.md",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "p:docs/protocols/PRPACK-v0.14.md",
+      "label": "docs/protocols/PRPACK-v0.14.md",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "p:docs/protocols/PRPACK-v0.8.md",
+      "label": "docs/protocols/PRPACK-v0.8.md",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "p:docs/protocols/README.md",
+      "label": "docs/protocols/README.md",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "p:docs/protocols/RELEASE-CARD-COPY-v0.25.md",
+      "label": "docs/protocols/RELEASE-CARD-COPY-v0.25.md",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "p:docs/protocols/RELEASE-CARD-TONES-v0.26.md",
+      "label": "docs/protocols/RELEASE-CARD-TONES-v0.26.md",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "p:docs/protocols/RELEASE-NOTES-v0.20.md",
+      "label": "docs/protocols/RELEASE-NOTES-v0.20.md",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "p:docs/protocols/RESOLVE-LINE-v0.12.md",
+      "label": "docs/protocols/RESOLVE-LINE-v0.12.md",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "p:docs/protocols/RESOLVEPACK-v0.5.md",
+      "label": "docs/protocols/RESOLVEPACK-v0.5.md",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "p:issues/README.md",
+      "label": "issues/README.md",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "p:issues/REQ-003.md",
+      "label": "issues/REQ-003.md",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "p:logs/251222_LOCAL-UI-v0.4구현[클로드].md",
+      "label": "logs/251222_LOCAL-UI-v0.4구현[클로드].md",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "p:logs/251223_STEP05.1-완결[클로드].md",
+      "label": "logs/251223_STEP05.1-완결[클로드].md",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "p:logs/CHANGELOG.md",
+      "label": "logs/CHANGELOG.md",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "p:next-env.d.ts",
+      "label": "next-env.d.ts",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "p:next.config.js",
+      "label": "next.config.js",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "p:ops/new_decision.sh",
+      "label": "ops/new_decision.sh",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "p:ops/new_issue.sh",
+      "label": "ops/new_issue.sh",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "p:ops/new_proof.sh",
+      "label": "ops/new_proof.sh",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "p:package.json",
+      "label": "package.json",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "p:pnpm-lock.yaml",
+      "label": "pnpm-lock.yaml",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "p:public/graph.json",
+      "label": "public/graph.json",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "p:scripts/scan_repo.mjs",
+      "label": "scripts/scan_repo.mjs",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "p:src/app/api/file/route.ts",
+      "label": "src/app/api/file/route.ts",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "p:src/app/data/page.tsx",
+      "label": "src/app/data/page.tsx",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "p:src/app/layout.tsx",
+      "label": "src/app/layout.tsx",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "p:src/app/logic/page.tsx",
+      "label": "src/app/logic/page.tsx",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "p:src/app/map/MapClient.tsx",
+      "label": "src/app/map/MapClient.tsx",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "p:src/app/map/page.tsx",
+      "label": "src/app/map/page.tsx",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "p:src/app/ops/OpsActions.tsx",
+      "label": "src/app/ops/OpsActions.tsx",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "p:src/app/ops/page.tsx",
+      "label": "src/app/ops/page.tsx",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "p:src/app/ops/today/page.tsx",
+      "label": "src/app/ops/today/page.tsx",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "p:src/app/ops/view/page.tsx",
+      "label": "src/app/ops/view/page.tsx",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "p:src/app/page.tsx",
+      "label": "src/app/page.tsx",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "p:src/types/cytoscape-fcose.d.ts",
+      "label": "src/types/cytoscape-fcose.d.ts",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "p:src/types/react-cytoscapejs.d.ts",
+      "label": "src/types/react-cytoscapejs.d.ts",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "p:tools/build-graph.mjs",
+      "label": "tools/build-graph.mjs",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "p:tools/lib/graph-metrics.mjs",
+      "label": "tools/lib/graph-metrics.mjs",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "p:tools/watch-graph.mjs",
+      "label": "tools/watch-graph.mjs",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "p:tsconfig.json",
+      "label": "tsconfig.json",
+      "x": 0,
+      "y": 0
+    }
+  ],
+  "edges": [
+    {
+      "id": "e:p:src/app/map/page.tsx->p:src/app/map/MapClient.tsx",
+      "from": "p:src/app/map/page.tsx",
+      "to": "p:src/app/map/MapClient.tsx"
+    },
+    {
+      "id": "e:p:src/app/ops/page.tsx->p:src/app/ops/OpsActions.tsx",
+      "from": "p:src/app/ops/page.tsx",
+      "to": "p:src/app/ops/OpsActions.tsx"
+    },
+    {
+      "id": "e:p:tools/build-graph.mjs->p:tools/lib/graph-metrics.mjs",
+      "from": "p:tools/build-graph.mjs",
+      "to": "p:tools/lib/graph-metrics.mjs"
+    }
+  ]
+}
