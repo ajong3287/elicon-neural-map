@@ -73,6 +73,26 @@ function getFolderOf(filePath: string) {
   return idx >= 0 ? filePath.slice(0, idx) : "";
 }
 
+function getTopDir(label: string) {
+  const p = (label || "").replaceAll("\\", "/");
+  if (!p.includes("/")) return ".";
+  return p.split("/")[0] || ".";
+}
+
+function getExt(label: string) {
+  const base = (label || "").split("/").pop() || "";
+  const i = base.lastIndexOf(".");
+  if (i <= 0) return "(noext)";
+  return base.slice(i + 1).toLowerCase();
+}
+
+function toSortedTop(map: Map<string, number>, topN: number) {
+  const arr = Array.from(map.entries()).sort((a, b) => b[1] - a[1]);
+  const top = arr.slice(0, topN);
+  const rest = arr.slice(topN).reduce((s, [, v]) => s + v, 0);
+  return { top, rest };
+}
+
 export default function MapClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -103,6 +123,16 @@ export default function MapClient() {
   const [selected, setSelected] = useState<GNode | null>(null);
   const [content, setContent] = useState<string>("노드를 클릭하거나 좌측 트리에서 파일을 선택하세요.");
 
+  // STEP05.6: filter state
+  const [dirFilter, setDirFilter] = useState<string>("(all)");
+  const [extFilter, setExtFilter] = useState<string>("(all)");
+  const [hideIsolated, setHideIsolated] = useState<boolean>(false);
+  const [hubThreshold, setHubThreshold] = useState<number>(6);
+
+  // STEP05.7: focus state
+  const [focusId, setFocusId] = useState<string | null>(null);
+  const [focusOnly, setFocusOnly] = useState<boolean>(false);
+
   useEffect(() => {
     (async () => {
       const r = await fetch("/graph.json", { cache: "no-store" });
@@ -128,18 +158,147 @@ export default function MapClient() {
   const fileIds = useMemo(() => (graph ? graph.nodes.map((n) => n.id) : []), [graph]);
   const tree = useMemo(() => buildTree(fileIds), [fileIds]);
 
-  const elements = useMemo(() => {
-    if (!graph) return [];
+  // STEP05.6: Filter options
+  const filterOptions = useMemo(() => {
+    const nodes = (graph?.nodes as any[]) || [];
+    const dirs = new Set<string>();
+    const exts = new Set<string>();
+    for (const n of nodes) {
+      const label = (n.label ?? "") as string;
+      dirs.add(getTopDir(label));
+      exts.add(getExt(label));
+    }
+    const dirList = Array.from(dirs).sort((a, b) => a.localeCompare(b));
+    const extList = Array.from(exts).sort((a, b) => a.localeCompare(b));
+    return { dirList, extList };
+  }, [graph]);
+
+  // STEP05.6: Degree calculation
+  const degreeMap = useMemo(() => {
+    const nodes = (graph?.nodes as any[]) || [];
+    const edges = (graph?.edges as any[]) || [];
+    const deg = new Map<string, number>();
+    for (const n of nodes) deg.set(n.id, 0);
+
+    for (const e of edges) {
+      const a = (e.from ?? e.source ?? e.a) as string | undefined;
+      const b = (e.to ?? e.target ?? e.b) as string | undefined;
+      if (!a || !b) continue;
+      deg.set(a, (deg.get(a) ?? 0) + 1);
+      deg.set(b, (deg.get(b) ?? 0) + 1);
+    }
+    return deg;
+  }, [graph]);
+
+  // STEP05.6: Filter pipeline (includes all filters)
+  const filtered = useMemo(() => {
+    const nodes = (graph?.nodes as any[]) || [];
+    const edges = (graph?.edges as any[]) || [];
     const q = search.trim().toLowerCase();
 
-    // Build set of collapsed node IDs
+    // Build collapsed node IDs
     const collapsedNodeIds = new Set<string>();
     collapsedClusters.forEach((clusterId) => {
-      const cluster = graph.clusters?.find((c) => c.id === clusterId);
+      const cluster = graph?.clusters?.find((c) => c.id === clusterId);
       if (cluster) {
         cluster.nodeIds.forEach((nodeId) => collapsedNodeIds.add(nodeId));
       }
     });
+
+    const keepNode = (n: any) => {
+      // Collapsed clusters
+      if (collapsedNodeIds.has(n.id)) return false;
+
+      // Folder filter (existing)
+      if (folderFilter && !(n.id.startsWith(folderFilter + "/") || n.id === folderFilter)) return false;
+
+      // Search filter (existing)
+      const label = (n.label ?? "") as string;
+      if (q && !(label.toLowerCase().includes(q) || n.id.toLowerCase().includes(q))) return false;
+
+      // Score filter (existing)
+      const s = n.score ?? 0;
+      if (s < scoreRange.min || s > scoreRange.max) return false;
+
+      // STEP05.6: Dir/Ext filters
+      const d = getTopDir(label);
+      const x = getExt(label);
+      if (dirFilter !== "(all)" && d !== dirFilter) return false;
+      if (extFilter !== "(all)" && x !== extFilter) return false;
+
+      // STEP05.6: Isolated filter
+      const deg = degreeMap.get(n.id) ?? 0;
+      if (hideIsolated && deg === 0) return false;
+
+      return true;
+    };
+
+    const kept = nodes.filter(keepNode);
+    const keptSet = new Set(kept.map((n) => n.id));
+
+    const keptEdges = edges.filter((e: any) => {
+      const a = (e.from ?? e.source ?? e.a) as string | undefined;
+      const b = (e.to ?? e.target ?? e.b) as string | undefined;
+      if (!a || !b) return false;
+      return keptSet.has(a) && keptSet.has(b);
+    });
+
+    return { nodes: kept, edges: keptEdges };
+  }, [graph, dirFilter, extFilter, hideIsolated, degreeMap, folderFilter, search, scoreRange, collapsedClusters]);
+
+  // STEP05.6: Hub highlight
+  const highlightedNodes = useMemo(() => {
+    return filtered.nodes.map((n: any) => {
+      const deg = degreeMap.get(n.id) ?? 0;
+      const isHub = deg >= hubThreshold;
+      return { ...n, isHub, deg };
+    });
+  }, [filtered.nodes, degreeMap, hubThreshold]);
+
+  // STEP05.7: Focus nodes
+  const focusNodes = useMemo(() => {
+    if (!focusId) return highlightedNodes;
+    return highlightedNodes.map((n: any) => {
+      const isFocus = n.id === focusId;
+      // dim: 포커스 외 노드는 살짝 흐리게
+      return {
+        ...n,
+        isFocus,
+        dim: !isFocus,
+      };
+    });
+  }, [highlightedNodes, focusId]);
+
+  // STEP05.7: Focus only (1-hop)
+  const focusFiltered = useMemo(() => {
+    if (!focusOnly || !focusId) return { nodes: focusNodes, edges: filtered.edges };
+
+    const neighbor = new Set<string>();
+    neighbor.add(focusId);
+
+    for (const e of filtered.edges as any[]) {
+      const a = (e.from ?? e.source ?? e.a) as string | undefined;
+      const b = (e.to ?? e.target ?? e.b) as string | undefined;
+      if (!a || !b) continue;
+      if (a === focusId) neighbor.add(b);
+      if (b === focusId) neighbor.add(a);
+    }
+
+    const nodes = (focusNodes as any[]).filter((n) => neighbor.has(n.id));
+    const set = new Set(nodes.map((n) => n.id));
+    const edges = (filtered.edges as any[]).filter((e) => {
+      const a = (e.from ?? e.source ?? e.a) as string | undefined;
+      const b = (e.to ?? e.target ?? e.b) as string | undefined;
+      if (!a || !b) return false;
+      return set.has(a) && set.has(b);
+    });
+
+    return { nodes, edges };
+  }, [focusOnly, focusId, focusNodes, filtered.edges]);
+
+  // STEP05.7: Elements (use focusFiltered)
+  const elements = useMemo(() => {
+    if (!graph) return [];
 
     // Build node-to-cluster map
     const nodeToCluster = new Map<string, string>();
@@ -151,30 +310,37 @@ export default function MapClient() {
       }
     });
 
-    const nodes = graph.nodes
-      .filter((n) => !collapsedNodeIds.has(n.id))
-      .filter((n) => (folderFilter ? n.id.startsWith(folderFilter + "/") || n.id === folderFilter : true))
-      .filter((n) => (q ? n.label.toLowerCase().includes(q) || n.id.toLowerCase().includes(q) : true))
-      .filter((n) => {
-        const s = n.score ?? 0;
-        return s >= scoreRange.min && s <= scoreRange.max;
-      })
-      .map((n) => ({
-        data: {
-          id: n.id,
-          label: n.label,
-          ext: n.ext,
-          degree: n.degree ?? 0,
-          score: n.score ?? 0,
-          path: n.path,
-          parent: nodeToCluster.get(n.id) // Add parent cluster
-        },
-      }));
+    // Use focusFiltered.nodes (already has all filters + focus + hub)
+    const nodes = focusFiltered.nodes.map((n: any) => ({
+      data: {
+        id: n.id,
+        label: n.label,
+        ext: n.ext,
+        degree: n.deg ?? 0,
+        score: n.score ?? 0,
+        path: n.path,
+        parent: nodeToCluster.get(n.id),
+        isHub: n.isHub,      // STEP05.6: Hub indicator
+        isFocus: n.isFocus,  // STEP05.7: Focus indicator
+        dim: n.dim,          // STEP05.7: Dim indicator
+      },
+    }));
 
     const nodeIdSet = new Set(nodes.map((x) => x.data.id));
-    const edges = graph.edges
-      .filter((e) => nodeIdSet.has(e.source) && nodeIdSet.has(e.target))
-      .map((e, i) => ({ data: { id: `${e.source}__${e.target}__${i}`, source: e.source, target: e.target, type: e.type } }));
+
+    // Use focusFiltered.edges (already filtered)
+    const edges = focusFiltered.edges.map((e: any, i: number) => {
+      const source = (e.from ?? e.source ?? e.a) as string;
+      const target = (e.to ?? e.target ?? e.b) as string;
+      return {
+        data: {
+          id: `${source}__${target}__${i}`,
+          source,
+          target,
+          type: e.type
+        }
+      };
+    });
 
     // Add cluster parent nodes (only for non-collapsed clusters with visible nodes)
     const clusterNodes: any[] = [];
@@ -195,7 +361,50 @@ export default function MapClient() {
     });
 
     return [...clusterNodes, ...nodes, ...edges];
-  }, [graph, folderFilter, search, collapsedClusters, scoreRange]);
+  }, [graph, focusFiltered, collapsedClusters]);
+
+  // STEP05.5: Dashboard data
+  const dashboard = useMemo(() => {
+    const nodes = (graph?.nodes as any[]) || [];
+    const edges = (graph?.edges as any[]) || [];
+
+    const extMap = new Map<string, number>();
+    const dirMap = new Map<string, number>();
+
+    // 폴더/확장자 분포
+    for (const n of nodes) {
+      const label = (n.label ?? "") as string;
+      const ext = getExt(label);
+      const dir = getTopDir(label);
+      extMap.set(ext, (extMap.get(ext) ?? 0) + 1);
+      dirMap.set(dir, (dirMap.get(dir) ?? 0) + 1);
+    }
+
+    // 허브 노드 (Top 12)
+    const hubs = nodes
+      .map((n) => ({ id: n.id, label: n.label ?? n.id, deg: degreeMap.get(n.id) ?? 0 }))
+      .sort((a, b) => b.deg - a.deg)
+      .slice(0, 12);
+
+    // 고립 노드 (Top 30)
+    const isolated = nodes
+      .filter((n) => (degreeMap.get(n.id) ?? 0) === 0)
+      .map((n) => ({ id: n.id, label: n.label ?? n.id }))
+      .slice(0, 30);
+
+    const extTop = toSortedTop(extMap, 12);
+    const dirTop = toSortedTop(dirMap, 12);
+
+    return {
+      nodesCount: nodes.length,
+      edgesCount: edges.length,
+      extTop,
+      dirTop,
+      hubs,
+      isolatedCount: nodes.filter((n) => (degreeMap.get(n.id) ?? 0) === 0).length,
+      isolated,
+    };
+  }, [graph, degreeMap]);
 
   useEffect(() => {
     if (!cyRef.current) return;
@@ -267,6 +476,26 @@ export default function MapClient() {
         width: 4,
         "line-style": "solid",
         opacity: 1
+      })
+      // STEP05.6: Hub node style
+      .selector("node[isHub]")
+      .style({
+        "border-width": 3,
+        "border-color": "#fbbf24",
+        "border-style": "solid"
+      })
+      // STEP05.7: Focused node style
+      .selector("node[isFocus]")
+      .style({
+        "border-width": 4,
+        "border-color": "#22c55e",
+        "border-style": "solid",
+        opacity: 1
+      })
+      // STEP05.7: Dimmed node style
+      .selector("node[dim]")
+      .style({
+        opacity: 0.25
       })
       .update();
 
@@ -530,6 +759,94 @@ export default function MapClient() {
         </div>
       </div>
 
+      {/* STEP05.6: Filter Controls */}
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 10, alignItems: "center", padding: "10px 10px 0 10px", background: "#0b0b0f", borderBottom: "1px solid #1f2937" }}>
+        <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+          <span style={{ fontSize: 12, opacity: 0.8 }}>Folder</span>
+          <select
+            value={dirFilter}
+            onChange={(e) => setDirFilter(e.target.value)}
+            style={{ padding: "4px 8px", background: "#0f172a", color: "#e5e7eb", border: "1px solid #263041", borderRadius: 8, fontSize: 12 }}
+          >
+            <option value="(all)">(all)</option>
+            {filterOptions.dirList.map((d) => (
+              <option key={d} value={d}>{d}</option>
+            ))}
+          </select>
+        </div>
+
+        <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+          <span style={{ fontSize: 12, opacity: 0.8 }}>Ext</span>
+          <select
+            value={extFilter}
+            onChange={(e) => setExtFilter(e.target.value)}
+            style={{ padding: "4px 8px", background: "#0f172a", color: "#e5e7eb", border: "1px solid #263041", borderRadius: 8, fontSize: 12 }}
+          >
+            <option value="(all)">(all)</option>
+            {filterOptions.extList.map((x) => (
+              <option key={x} value={x}>{x}</option>
+            ))}
+          </select>
+        </div>
+
+        <label style={{ display: "flex", gap: 6, alignItems: "center", fontSize: 12, opacity: 0.9 }}>
+          <input
+            type="checkbox"
+            checked={hideIsolated}
+            onChange={(e) => setHideIsolated(e.target.checked)}
+          />
+          hide isolated
+        </label>
+
+        <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+          <span style={{ fontSize: 12, opacity: 0.8 }}>hub ≥ {hubThreshold}</span>
+          <input
+            type="range"
+            min={1}
+            max={20}
+            value={hubThreshold}
+            onChange={(e) => setHubThreshold(parseInt(e.target.value, 10))}
+            style={{ width: 100 }}
+          />
+        </div>
+
+        <div style={{ marginLeft: "auto", fontSize: 12, opacity: 0.8 }}>
+          filtered: nodes {focusFiltered.nodes.length} · edges {focusFiltered.edges.length}
+        </div>
+      </div>
+
+      {/* STEP05.7: Focus Controls */}
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 10, alignItems: "center", padding: "10px", background: "#0b0b0f", borderBottom: "1px solid #1f2937" }}>
+        {focusId ? (
+          <>
+            <div style={{ display: "flex", gap: 6, alignItems: "center", padding: "6px 10px", background: "rgba(251,191,36,0.15)", borderRadius: 8, border: "1px solid rgba(251,191,36,0.3)" }}>
+              <span style={{ fontSize: 12, fontWeight: 600, color: "#fbbf24" }}>Focus:</span>
+              <span style={{ fontSize: 12, opacity: 0.9, maxWidth: 200, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                {focusFiltered.nodes.find((n: any) => n.id === focusId)?.label ?? focusId}
+              </span>
+            </div>
+
+            <button
+              onClick={() => setFocusId(null)}
+              style={{ padding: "6px 12px", borderRadius: 8, border: "1px solid #374151", background: "#0f172a", color: "#e5e7eb", cursor: "pointer", fontSize: 12 }}
+            >
+              Clear
+            </button>
+
+            <label style={{ display: "flex", gap: 6, alignItems: "center", fontSize: 12, opacity: 0.9 }}>
+              <input
+                type="checkbox"
+                checked={focusOnly}
+                onChange={(e) => setFocusOnly(e.target.checked)}
+              />
+              focus only (1-hop)
+            </label>
+          </>
+        ) : (
+          <div style={{ fontSize: 12, opacity: 0.6 }}>클릭하여 노드 포커스</div>
+        )}
+      </div>
+
       {/* 3 Columns */}
       <div style={{ height: "calc(100vh - 54px)", display: "grid", gridTemplateColumns: "320px 1fr 520px" }}>
         {/* Left Tree */}
@@ -630,6 +947,118 @@ export default function MapClient() {
 
         {/* Right Code */}
         <div style={{ display: "flex", flexDirection: "column" }}>
+          {/* STEP05.5: Dashboard (STEP05.7: with clickable Hub/Isolated) */}
+          <div style={{ display: "grid", gap: 10, padding: 10, borderBottom: "1px solid #1f2937" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+              <div style={{ fontWeight: 700 }}>Dashboard</div>
+              <div style={{ opacity: 0.7, fontSize: 12 }}>
+                nodes {dashboard.nodesCount} · edges {dashboard.edgesCount}
+              </div>
+            </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+              {/* Top folders */}
+              <div style={{ padding: 10, border: "1px solid rgba(255,255,255,0.08)", borderRadius: 8, background: "rgba(255,255,255,0.02)" }}>
+                <div style={{ fontWeight: 600, marginBottom: 6, fontSize: 12 }}>Top folders</div>
+                {dashboard.dirTop.top.map(([k, v]) => (
+                  <div key={k} style={{ display: "flex", justifyContent: "space-between", fontSize: 11, padding: "2px 0", opacity: 0.9 }}>
+                    <span>{k}</span>
+                    <span style={{ opacity: 0.7 }}>{v}</span>
+                  </div>
+                ))}
+                {dashboard.dirTop.rest > 0 && (
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, padding: "2px 0", opacity: 0.6, fontStyle: "italic" }}>
+                    <span>others</span>
+                    <span>{dashboard.dirTop.rest}</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Top extensions */}
+              <div style={{ padding: 10, border: "1px solid rgba(255,255,255,0.08)", borderRadius: 8, background: "rgba(255,255,255,0.02)" }}>
+                <div style={{ fontWeight: 600, marginBottom: 6, fontSize: 12 }}>Top extensions</div>
+                {dashboard.extTop.top.map(([k, v]) => (
+                  <div key={k} style={{ display: "flex", justifyContent: "space-between", fontSize: 11, padding: "2px 0", opacity: 0.9 }}>
+                    <span>{k}</span>
+                    <span style={{ opacity: 0.7 }}>{v}</span>
+                  </div>
+                ))}
+                {dashboard.extTop.rest > 0 && (
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, padding: "2px 0", opacity: 0.6, fontStyle: "italic" }}>
+                    <span>others</span>
+                    <span>{dashboard.extTop.rest}</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Hub nodes - STEP05.7: clickable */}
+              <div style={{ padding: 10, border: "1px solid rgba(251,191,36,0.2)", borderRadius: 8, background: "rgba(251,191,36,0.05)" }}>
+                <div style={{ fontWeight: 600, marginBottom: 6, fontSize: 12, color: "#fbbf24" }}>Hub nodes</div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 2, maxHeight: 120, overflowY: "auto" }}>
+                  {dashboard.hubs.map((h) => (
+                    <div
+                      key={h.id}
+                      onClick={() => setFocusId(h.id)}
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        fontSize: 11,
+                        padding: "4px 6px",
+                        opacity: 0.9,
+                        cursor: "pointer",
+                        borderRadius: 4,
+                        background: focusId === h.id ? "rgba(251,191,36,0.2)" : "transparent",
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = "rgba(251,191,36,0.15)";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = focusId === h.id ? "rgba(251,191,36,0.2)" : "transparent";
+                      }}
+                    >
+                      <span style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{h.label}</span>
+                      <span style={{ opacity: 0.7, marginLeft: 6, flexShrink: 0 }}>({h.deg})</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Isolated nodes - STEP05.7: clickable */}
+              <div style={{ padding: 10, border: "1px solid rgba(239,68,68,0.2)", borderRadius: 8, background: "rgba(239,68,68,0.05)" }}>
+                <div style={{ fontWeight: 600, marginBottom: 6, fontSize: 12, color: "#ef4444" }}>
+                  Isolated ({dashboard.isolatedCount})
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 2, maxHeight: 120, overflowY: "auto" }}>
+                  {dashboard.isolated.map((iso) => (
+                    <div
+                      key={iso.id}
+                      onClick={() => setFocusId(iso.id)}
+                      style={{
+                        fontSize: 11,
+                        padding: "4px 6px",
+                        opacity: 0.9,
+                        cursor: "pointer",
+                        borderRadius: 4,
+                        background: focusId === iso.id ? "rgba(239,68,68,0.2)" : "transparent",
+                        whiteSpace: "nowrap",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = "rgba(239,68,68,0.15)";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = focusId === iso.id ? "rgba(239,68,68,0.2)" : "transparent";
+                      }}
+                    >
+                      {iso.label}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+
           <div style={{ padding: 12, borderBottom: "1px solid #1f2937", display: "flex", gap: 10, alignItems: "center" }}>
             <div style={{ fontWeight: 800 }}>Inspector</div>
             <div style={{ fontSize: 12, opacity: 0.8, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
