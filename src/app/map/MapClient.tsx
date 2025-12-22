@@ -10,7 +10,7 @@ import Editor from "@monaco-editor/react";
 
 cytoscape.use(fcose as any);
 
-type GNode = { id: string; label: string; ext: string; path: string; degree?: number; score?: number };
+type GNode = { id: string; label: string; ext: string; path: string; degree?: number; score?: number; x?: number; y?: number };
 type GEdge = { source: string; target: string; type: string; cycle?: boolean };
 type GCluster = { id: string; label: string; nodeIds: string[] };
 type GCycle = { id: string; nodeIds: string[] };
@@ -73,12 +73,103 @@ function getFolderOf(filePath: string) {
   return idx >= 0 ? filePath.slice(0, idx) : "";
 }
 
+function runForceLayout(
+  nodes: any[],
+  edges: any[],
+  opts?: { width?: number; height?: number; iterations?: number; repulsion?: number; spring?: number; damping?: number; centerPull?: number }
+) {
+  const width = opts?.width ?? 760;
+  const height = opts?.height ?? 520;
+  const iterations = opts?.iterations ?? 260;
+  const repulsion = opts?.repulsion ?? 9000;
+  const spring = opts?.spring ?? 0.012;
+  const damping = opts?.damping ?? 0.86;
+  const centerPull = opts?.centerPull ?? 0.002;
+
+  const cx = width / 2;
+  const cy = height / 2;
+
+  const map = new Map<string, number>();
+  for (let i = 0; i < nodes.length; i++) map.set(nodes[i].id, i);
+
+  // 초기값: 원형으로 퍼뜨리기(완전 0 겹침 방지)
+  for (let i = 0; i < nodes.length; i++) {
+    const a = (i / Math.max(1, nodes.length)) * Math.PI * 2;
+    nodes[i].x = cx + Math.cos(a) * (Math.min(width, height) * 0.32);
+    nodes[i].y = cy + Math.sin(a) * (Math.min(width, height) * 0.32);
+  }
+
+  const vx = new Array(nodes.length).fill(0);
+  const vy = new Array(nodes.length).fill(0);
+
+  const pairs: Array<[number, number]> = [];
+  for (const e of edges) {
+    const a = map.get(e.from);
+    const b = map.get(e.to);
+    if (a == null || b == null) continue;
+    if (a === b) continue;
+    pairs.push([a, b]);
+  }
+
+  for (let it = 0; it < iterations; it++) {
+    // 1) 반발(노드-노드)
+    for (let i = 0; i < nodes.length; i++) {
+      for (let j = i + 1; j < nodes.length; j++) {
+        const dx = nodes[i].x - nodes[j].x;
+        const dy = nodes[i].y - nodes[j].y;
+        const dist2 = dx * dx + dy * dy + 0.01;
+        const f = repulsion / dist2;
+        const inv = 1 / Math.sqrt(dist2);
+        const fx = dx * inv * f;
+        const fy = dy * inv * f;
+        vx[i] += fx; vy[i] += fy;
+        vx[j] -= fx; vy[j] -= fy;
+      }
+    }
+
+    // 2) 스프링(엣지)
+    for (const [a, b] of pairs) {
+      const dx = nodes[b].x - nodes[a].x;
+      const dy = nodes[b].y - nodes[a].y;
+      const dist = Math.sqrt(dx * dx + dy * dy) + 0.01;
+      const target = 90; // 링크 길이 목표
+      const k = spring * (dist - target);
+      const fx = (dx / dist) * k;
+      const fy = (dy / dist) * k;
+      vx[a] += fx; vy[a] += fy;
+      vx[b] -= fx; vy[b] -= fy;
+    }
+
+    // 3) 중심으로 모으기
+    for (let i = 0; i < nodes.length; i++) {
+      vx[i] += (cx - nodes[i].x) * centerPull;
+      vy[i] += (cy - nodes[i].y) * centerPull;
+    }
+
+    // 4) 적분 + 감쇠 + 경계 클램프
+    for (let i = 0; i < nodes.length; i++) {
+      vx[i] *= damping;
+      vy[i] *= damping;
+
+      nodes[i].x += vx[i];
+      nodes[i].y += vy[i];
+
+      // 화면 밖 튐 방지
+      nodes[i].x = Math.max(30, Math.min(width - 30, nodes[i].x));
+      nodes[i].y = Math.max(30, Math.min(height - 30, nodes[i].y));
+    }
+  }
+
+  return nodes;
+}
+
 export default function MapClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const cyRef = useRef<cytoscape.Core | null>(null);
 
   const [graph, setGraph] = useState<Graph | null>(null);
+  const [laidNodes, setLaidNodes] = useState<GNode[]>([]);
 
   // Read initial state from URL
   const initialSearch = searchParams.get("q") || "";
@@ -110,6 +201,18 @@ export default function MapClient() {
       setGraph(g);
     })();
   }, []);
+
+  // Force layout
+  useEffect(() => {
+    if (!graph || graph.nodes.length === 0) return;
+    const clone = graph.nodes.map(n => ({ ...n, x: n.x ?? 0, y: n.y ?? 0 }));
+    const laid = runForceLayout(
+      clone,
+      graph.edges.map(e => ({ from: e.source, to: e.target })),
+      { width: 760, height: 520, iterations: 220 }
+    );
+    setLaidNodes(laid as any);
+  }, [graph]);
 
   // Sync state to URL
   useEffect(() => {
@@ -151,7 +254,8 @@ export default function MapClient() {
       }
     });
 
-    const nodes = graph.nodes
+    const sourceNodes = laidNodes.length > 0 ? laidNodes : graph.nodes;
+    const nodes = sourceNodes
       .filter((n) => !collapsedNodeIds.has(n.id))
       .filter((n) => (folderFilter ? n.id.startsWith(folderFilter + "/") || n.id === folderFilter : true))
       .filter((n) => (q ? n.label.toLowerCase().includes(q) || n.id.toLowerCase().includes(q) : true))
@@ -167,7 +271,9 @@ export default function MapClient() {
           degree: n.degree ?? 0,
           score: n.score ?? 0,
           path: n.path,
-          parent: nodeToCluster.get(n.id) // Add parent cluster
+          parent: nodeToCluster.get(n.id), // Add parent cluster
+          x: (n as any).x,
+          y: (n as any).y
         },
       }));
 
@@ -195,7 +301,7 @@ export default function MapClient() {
     });
 
     return [...clusterNodes, ...nodes, ...edges];
-  }, [graph, folderFilter, search, collapsedClusters, scoreRange]);
+  }, [graph, laidNodes, folderFilter, search, collapsedClusters, scoreRange]);
 
   useEffect(() => {
     if (!cyRef.current) return;
