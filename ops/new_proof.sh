@@ -1,13 +1,35 @@
 #!/usr/bin/env bash
 set -euo pipefail
-if [ $# -lt 2 ]; then
-  echo "Usage: ops/new_proof.sh ISSUE_ID topic_slug"
+
+ID="${1:-}"
+SLUG="${2:-}"
+
+if [[ -z "$ID" || -z "$SLUG" ]]; then
+  echo "usage: ops/new_proof.sh REQ-003 v3.4-LONG_map_precheck"
   exit 1
 fi
-ID="$1"
-TOPIC="$2"
-DATE="$(date +%Y%m%d)"
-OUT="docs/PROOFS/${DATE}_${ID}_${TOPIC}.md"
-cp docs/TEMPLATES/PROOF.md "$OUT"
-perl -0777 -i -pe "s/<ISSUE_ID>/${ID}/g; s/<주제>/${TOPIC}/g; s/YYYY-MM-DD/$(date +%Y-%m-%d)/g" "$OUT"
-echo "Created $OUT"
+
+mkdir -p docs/PROOFS
+
+STAMP="$(date +%Y%m%d)"
+FILE="docs/PROOFS/${STAMP}_${ID}_${SLUG}.md"
+
+if [[ -f "$FILE" ]]; then
+  echo "ERROR: already exists: $FILE"
+  exit 1
+fi
+
+cat > "$FILE" <<EOF
+[PROOF-${ID}-v0.1-LONG 제공]
+# PROOF: ${ID} / ${SLUG}
+
+- date: $(date +%Y-%m-%d)
+- rule: 원문 출력만(요약/의역/생략 금지)
+
+## Output
+(여기에 [M]~[P] 같은 원문 출력 붙여넣기)
+
+[PROOF-${ID}-v0.1-LONG 제공완료]
+EOF
+
+echo "created: $FILE"
