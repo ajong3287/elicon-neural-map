@@ -80,6 +80,10 @@ export default function MapClient() {
 
   const [graph, setGraph] = useState<Graph | null>(null);
 
+  // Upload state
+  const [uploadToken, setUploadToken] = useState("");
+  const [uploadMsg, setUploadMsg] = useState<string | null>(null);
+
   // Read initial state from URL
   const initialSearch = searchParams.get("q") || "";
   const initialCycleId = searchParams.get("cycle") || null;
@@ -328,6 +332,29 @@ export default function MapClient() {
     }
   }, [selectedCycleId, graph]);
 
+  async function onUpload(file: File) {
+    setUploadMsg(null);
+    try {
+      if (!uploadToken) {
+        setUploadMsg("ERROR: token required");
+        return;
+      }
+      const fd = new FormData();
+      fd.append("file", file);
+      const r = await fetch("/api/graph", {
+        method: "POST",
+        headers: { authorization: `Bearer ${uploadToken}` },
+        body: fd,
+      });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(j?.error ?? `upload failed: ${r.status}`);
+      setUploadMsg(`UPLOAD_OK bytes=${j?.bytes ?? 0}`);
+      window.location.reload();
+    } catch (e: any) {
+      setUploadMsg(`ERROR: ${e?.message ?? String(e)}`);
+    }
+  }
+
   async function openFileById(id: string) {
     const n = graph?.nodes.find((x) => x.id === id) ?? null;
     if (n) setSelected(n);
@@ -495,6 +522,28 @@ export default function MapClient() {
         </div>
 
         <div style={{ marginLeft: "auto", display: "flex", gap: 8, alignItems: "center" }}>
+          {/* Upload UI */}
+          <input
+            type="password"
+            placeholder="token"
+            value={uploadToken}
+            onChange={(e) => setUploadToken(e.target.value)}
+            style={{ padding: "6px 8px", borderRadius: 8, border: "1px solid #374151", background: "#0f172a", color: "#e5e7eb", fontSize: 12, width: 100 }}
+          />
+          <input
+            type="file"
+            accept="application/json"
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) onUpload(f);
+            }}
+            style={{ fontSize: 11 }}
+          />
+          {uploadMsg && (
+            <div style={{ fontSize: 11, padding: "4px 8px", borderRadius: 6, background: uploadMsg.startsWith("ERROR") ? "#7f1d1d" : "#065f46", color: "#fff" }}>
+              {uploadMsg}
+            </div>
+          )}
           <div style={{ fontSize: 12, opacity: 0.8 }}>폴더필터: {activeFolderLabel}</div>
           <button
             onClick={() => setFolderFilter("")}
