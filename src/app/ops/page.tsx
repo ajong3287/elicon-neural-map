@@ -9,6 +9,12 @@ type FileInfo = {
   mtime: Date;
 };
 
+type IssueStatus = {
+  hasProof: boolean;
+  hasDecision: boolean;
+  hasEvidence: boolean;
+};
+
 async function getFiles(dir: string): Promise<FileInfo[]> {
   const projectRoot = process.cwd();
   const fullPath = path.join(projectRoot, dir);
@@ -35,6 +41,47 @@ async function getFiles(dir: string): Promise<FileInfo[]> {
   }
 }
 
+async function checkIssueStatus(issueFileName: string): Promise<IssueStatus> {
+  const projectRoot = process.cwd();
+
+  // Extract ID from REQ-xxx.md
+  const match = issueFileName.match(/^REQ-(\d+)\.md$/);
+  if (!match) {
+    return { hasProof: true, hasDecision: true, hasEvidence: true };
+  }
+
+  const id = match[1];
+  const proofFile = `PROOF-${id}.md`;
+  const decisionFile = `DECISION-${id}.md`;
+
+  // Check if proof exists
+  let hasProof = false;
+  try {
+    await fs.access(path.join(projectRoot, "docs/PROOFS", proofFile));
+    hasProof = true;
+  } catch {
+    hasProof = false;
+  }
+
+  // Check if decision exists and has evidence
+  let hasDecision = false;
+  let hasEvidence = false;
+  try {
+    const decisionPath = path.join(projectRoot, "docs/DECISIONS", decisionFile);
+    await fs.access(decisionPath);
+    hasDecision = true;
+
+    // Check if decision contains evidence links
+    const content = await fs.readFile(decisionPath, "utf-8");
+    hasEvidence = content.includes("docs/PROOFS/");
+  } catch {
+    hasDecision = false;
+    hasEvidence = false;
+  }
+
+  return { hasProof, hasDecision, hasEvidence };
+}
+
 export default async function OpsPage({
   searchParams,
 }: {
@@ -47,6 +94,13 @@ export default async function OpsPage({
     getFiles("docs/PROOFS"),
     getFiles("docs/DECISIONS"),
   ]);
+
+  // Check status for each issue
+  const issueStatuses = new Map<string, IssueStatus>();
+  for (const issue of issues) {
+    const status = await checkIssueStatus(issue.name);
+    issueStatuses.set(issue.name, status);
+  }
 
   const filterFiles = (files: FileInfo[]) => {
     if (!query) return files;
@@ -120,27 +174,48 @@ export default async function OpsPage({
             <thead>
               <tr style={{ background: "#f5f5f5" }}>
                 <th style={cellStyle}>File</th>
+                <th style={cellStyle}>Status</th>
                 <th style={cellStyle}>Size</th>
                 <th style={cellStyle}>Modified</th>
               </tr>
             </thead>
             <tbody>
-              {filteredIssues.map((file) => (
-                <tr key={file.path}>
-                  <td style={cellStyle}>
-                    <Link
-                      href={`/ops/view?path=${encodeURIComponent(file.path)}`}
-                      style={{ color: "#0070f3" }}
-                    >
-                      {file.name}
-                    </Link>
-                  </td>
-                  <td style={cellStyle}>{(file.size / 1024).toFixed(1)} KB</td>
-                  <td style={cellStyle}>
-                    {file.mtime.toLocaleString("ko-KR")}
-                  </td>
-                </tr>
-              ))}
+              {filteredIssues.map((file) => {
+                const status = issueStatuses.get(file.name);
+                const badges = [];
+                if (status && !status.hasProof) badges.push("⚠ PROOF");
+                if (status && !status.hasDecision) badges.push("⚠ DECISION");
+                if (status && status.hasDecision && !status.hasEvidence)
+                  badges.push("⚠ NO-EVIDENCE");
+
+                return (
+                  <tr key={file.path}>
+                    <td style={cellStyle}>
+                      <Link
+                        href={`/ops/view?path=${encodeURIComponent(file.path)}`}
+                        style={{ color: "#0070f3" }}
+                      >
+                        {file.name}
+                      </Link>
+                    </td>
+                    <td style={cellStyle}>
+                      {badges.length > 0 ? (
+                        <span style={{ color: "#ff9800", fontSize: "0.9rem" }}>
+                          {badges.join(" ")}
+                        </span>
+                      ) : (
+                        <span style={{ color: "#4caf50" }}>✓</span>
+                      )}
+                    </td>
+                    <td style={cellStyle}>
+                      {(file.size / 1024).toFixed(1)} KB
+                    </td>
+                    <td style={cellStyle}>
+                      {file.mtime.toLocaleString("ko-KR")}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         )}
@@ -236,6 +311,10 @@ export default async function OpsPage({
           REQ-xxx
         </p>
         <p>
+          <Link href="/ops/today" style={{ color: "#0070f3" }}>
+            📅 Today&apos;s Activity
+          </Link>
+          {" | "}
           <Link href="/map" style={{ color: "#0070f3" }}>
             ← Back to Map
           </Link>
