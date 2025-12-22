@@ -1,13 +1,45 @@
 #!/usr/bin/env bash
 set -euo pipefail
-if [ $# -lt 2 ]; then
-  echo "Usage: ops/new_decision.sh ISSUE_ID topic_slug"
+
+ID="${1:-}"
+SLUG="${2:-}"
+
+if [[ -z "$ID" || -z "$SLUG" ]]; then
+  echo "usage: ops/new_decision.sh REQ-003 map_engine_persistence"
   exit 1
 fi
-ID="$1"
-TOPIC="$2"
-DATE="$(date +%Y%m%d)"
-OUT="docs/DECISIONS/${DATE}_${ID}_${TOPIC}.md"
-cp docs/TEMPLATES/DECISION_ADR.md "$OUT"
-perl -0777 -i -pe "s/<ISSUE_ID>/${ID}/g; s/<제목>/${TOPIC}/g; s/YYYY-MM-DD/$(date +%Y-%m-%d)/g" "$OUT"
-echo "Created $OUT"
+
+mkdir -p docs/DECISIONS
+
+STAMP="$(date +%Y%m%d)"
+FILE="docs/DECISIONS/${STAMP}_${ID}_${SLUG}.md"
+
+if [[ -f "$FILE" ]]; then
+  echo "ERROR: already exists: $FILE"
+  exit 1
+fi
+
+cat > "$FILE" <<EOF
+[DECISION-${ID}-v0.1-LONG 제공]
+# DECISION: ${ID} / ${SLUG}
+
+- date: $(date +%Y-%m-%d)
+- status: Proposed
+
+## 결론(3줄 이내)
+-
+-
+-
+
+## 근거(증거 링크)
+- docs/PROOFS/${STAMP}_${ID}_*.md
+
+## 다음 액션(3개 이내)
+- [ ]
+- [ ]
+- [ ]
+
+[DECISION-${ID}-v0.1-LONG 제공완료]
+EOF
+
+echo "created: $FILE"
