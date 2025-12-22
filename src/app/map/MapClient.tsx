@@ -246,6 +246,9 @@ export default function MapClient() {
   const [savedSnaps, setSavedSnaps] = useState<SavedSnap[]>([]);
   const [snapMsg, setSnapMsg] = useState("");
 
+  // STEP05.11: Server snapshot state
+  const [uploadToken, setUploadToken] = useState("");
+
   // STEP05.10: Load saved snaps on mount
   useEffect(() => {
     setSavedSnaps(loadSavedSnaps());
@@ -300,6 +303,39 @@ export default function MapClient() {
     if (typeof window !== "undefined") {
       window.location.href = u;
     }
+  }
+
+  // STEP05.11: Server snapshot functions
+  async function serverList(token: string) {
+    const r = await fetch("/api/snapshots", {
+      method: "GET",
+      headers: { authorization: `Bearer ${token}` },
+      cache: "no-store",
+    });
+    if (!r.ok) throw new Error(`LIST_FAILED_${r.status}`);
+    return (await r.json()) as any;
+  }
+
+  async function serverSave(token: string, payload: { id: string; name: string; url: string; createdAt: string }) {
+    const r = await fetch("/api/snapshots", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(payload),
+    });
+    if (!r.ok) throw new Error(`SAVE_FAILED_${r.status}`);
+    return (await r.json()) as any;
+  }
+
+  async function serverDelete(token: string, id: string) {
+    const r = await fetch(`/api/snapshots?id=${encodeURIComponent(id)}`, {
+      method: "DELETE",
+      headers: { authorization: `Bearer ${token}` },
+    });
+    if (!r.ok) throw new Error(`DEL_FAILED_${r.status}`);
+    return (await r.json()) as any;
   }
 
   useEffect(() => {
@@ -1361,6 +1397,94 @@ export default function MapClient() {
                 }}
               >
                 현재 상태 저장
+              </button>
+            </div>
+
+            {/* STEP05.11: Server snapshot controls */}
+            <div style={{ display: "flex", gap: 6, marginBottom: 8, alignItems: "center" }}>
+              <input
+                type="password"
+                value={uploadToken}
+                onChange={(e) => setUploadToken(e.target.value)}
+                placeholder="토큰"
+                style={{
+                  width: 100,
+                  padding: "6px 8px",
+                  background: "#0f172a",
+                  color: "#e5e7eb",
+                  border: "1px solid #263041",
+                  borderRadius: 8,
+                  fontSize: 11,
+                }}
+              />
+              <button
+                onClick={async () => {
+                  if (!uploadToken) {
+                    setSnapMsg("ERROR: 토큰 필요");
+                    setTimeout(() => setSnapMsg(""), 3000);
+                    return;
+                  }
+                  try {
+                    const currentSnap = savedSnaps[0];
+                    if (!currentSnap) {
+                      setSnapMsg("ERROR: 저장할 스냅샷 없음");
+                      setTimeout(() => setSnapMsg(""), 3000);
+                      return;
+                    }
+                    const res = await serverSave(uploadToken, currentSnap);
+                    setSnapMsg(`SERVER_SAVED: ${res.count}개`);
+                    setTimeout(() => setSnapMsg(""), 3000);
+                  } catch (e: any) {
+                    setSnapMsg(`ERROR: ${e.message}`);
+                    setTimeout(() => setSnapMsg(""), 3000);
+                  }
+                }}
+                style={{
+                  padding: "6px 12px",
+                  background: "#dc2626",
+                  color: "#e5e7eb",
+                  border: "none",
+                  borderRadius: 8,
+                  fontSize: 11,
+                  cursor: "pointer",
+                  fontWeight: 600,
+                  whiteSpace: "nowrap",
+                }}
+              >
+                서버로 저장
+              </button>
+              <button
+                onClick={async () => {
+                  if (!uploadToken) {
+                    setSnapMsg("ERROR: 토큰 필요");
+                    setTimeout(() => setSnapMsg(""), 3000);
+                    return;
+                  }
+                  try {
+                    const res = await serverList(uploadToken);
+                    const items = res.items || [];
+                    setSavedSnaps(items);
+                    persistSavedSnaps(items);
+                    setSnapMsg(`SERVER_LOADED: ${items.length}개`);
+                    setTimeout(() => setSnapMsg(""), 3000);
+                  } catch (e: any) {
+                    setSnapMsg(`ERROR: ${e.message}`);
+                    setTimeout(() => setSnapMsg(""), 3000);
+                  }
+                }}
+                style={{
+                  padding: "6px 12px",
+                  background: "#059669",
+                  color: "#e5e7eb",
+                  border: "none",
+                  borderRadius: 8,
+                  fontSize: 11,
+                  cursor: "pointer",
+                  fontWeight: 600,
+                  whiteSpace: "nowrap",
+                }}
+              >
+                서버에서 불러오기
               </button>
             </div>
 
