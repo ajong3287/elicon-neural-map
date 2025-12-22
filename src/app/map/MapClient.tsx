@@ -93,6 +93,55 @@ function toSortedTop(map: Map<string, number>, topN: number) {
   return { top, rest };
 }
 
+// STEP05.8: URL Snapshot utilities
+type UrlSnap = {
+  dir?: string;
+  ext?: string;
+  hid?: 0 | 1;
+  hub?: number;
+  fid?: string;
+  fonly?: 0 | 1;
+  onehop?: 0 | 1;
+  z?: number;
+  px?: number;
+  py?: number;
+};
+
+function encodeSnap(s: UrlSnap) {
+  const p = new URLSearchParams();
+  if (s.dir) p.set("dir", s.dir);
+  if (s.ext) p.set("ext", s.ext);
+  if (typeof s.hid === "number") p.set("hid", String(s.hid));
+  if (typeof s.hub === "number") p.set("hub", String(s.hub));
+  if (s.fid) p.set("fid", s.fid);
+  if (typeof s.fonly === "number") p.set("fonly", String(s.fonly));
+  if (typeof s.onehop === "number") p.set("onehop", String(s.onehop));
+  if (typeof s.z === "number") p.set("z", s.z.toFixed(3));
+  if (typeof s.px === "number") p.set("px", s.px.toFixed(1));
+  if (typeof s.py === "number") p.set("py", s.py.toFixed(1));
+  return p.toString();
+}
+
+function decodeSnap(qs: string): UrlSnap {
+  const p = new URLSearchParams(qs.startsWith("?") ? qs.slice(1) : qs);
+  const hub = p.get("hub");
+  const z = p.get("z");
+  const px = p.get("px");
+  const py = p.get("py");
+  return {
+    dir: p.get("dir") || undefined,
+    ext: p.get("ext") || undefined,
+    hid: p.has("hid") ? (Number(p.get("hid")) ? 1 : 0) : undefined,
+    hub: hub != null ? Number(hub) : undefined,
+    fid: p.get("fid") || undefined,
+    fonly: p.has("fonly") ? (Number(p.get("fonly")) ? 1 : 0) : undefined,
+    onehop: p.has("onehop") ? (Number(p.get("onehop")) ? 1 : 0) : undefined,
+    z: z != null ? Number(z) : undefined,
+    px: px != null ? Number(px) : undefined,
+    py: py != null ? Number(py) : undefined,
+  };
+}
+
 export default function MapClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -133,6 +182,11 @@ export default function MapClient() {
   const [focusId, setFocusId] = useState<string | null>(null);
   const [focusOnly, setFocusOnly] = useState<boolean>(false);
 
+  // STEP05.8: URL snapshot state
+  const [cyReady, setCyReady] = useState(false);
+  const [snapApplied, setSnapApplied] = useState(false);
+  const [vpApplied, setVpApplied] = useState(false);
+
   useEffect(() => {
     (async () => {
       const r = await fetch("/graph.json", { cache: "no-store" });
@@ -140,6 +194,73 @@ export default function MapClient() {
       setGraph(g);
     })();
   }, []);
+
+  // STEP05.8: URL → State restoration (initial load)
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (snapApplied) return;
+
+    const s = decodeSnap(window.location.search);
+
+    if (s.dir != null) setDirFilter(s.dir);
+    if (s.ext != null) setExtFilter(s.ext);
+    if (s.hid != null) setHideIsolated(!!s.hid);
+    if (s.hub != null && !Number.isNaN(s.hub)) setHubThreshold(s.hub);
+    if (s.fid != null) setFocusId(s.fid);
+    if (s.fonly != null) setFocusOnly(!!s.fonly);
+
+    setSnapApplied(true);
+  }, [snapApplied]);
+
+  // STEP05.8: State/Viewport → URL sync (debounced)
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (!snapApplied) return;
+
+    const t = setTimeout(() => {
+      const cy = cyRef.current;
+      const z = cy && typeof cy.zoom === "function" ? cy.zoom() : undefined;
+      const pan = cy && typeof cy.pan === "function" ? cy.pan() : undefined;
+
+      const qs = encodeSnap({
+        dir: dirFilter || undefined,
+        ext: extFilter || undefined,
+        hid: hideIsolated ? 1 : 0,
+        hub: Number(hubThreshold),
+        fid: focusId || undefined,
+        fonly: focusOnly ? 1 : 0,
+        z: typeof z === "number" ? z : undefined,
+        px: pan?.x,
+        py: pan?.y,
+      });
+
+      const url = new URL(window.location.href);
+      url.search = qs ? `?${qs}` : "";
+      window.history.replaceState(null, "", url.toString());
+    }, 250);
+
+    return () => clearTimeout(t);
+  }, [snapApplied, dirFilter, extFilter, hideIsolated, hubThreshold, focusId, focusOnly]);
+
+  // STEP05.8: Zoom/pan restoration (once when cyReady)
+  useEffect(() => {
+    if (!snapApplied) return;
+    if (!cyReady) return;
+    if (vpApplied) return;
+
+    const s = decodeSnap(typeof window !== "undefined" ? window.location.search : "");
+    const cy = cyRef.current;
+    if (!cy) return;
+
+    if (typeof s.z === "number" && !Number.isNaN(s.z)) {
+      cy.zoom(s.z);
+    }
+    if (typeof s.px === "number" && typeof s.py === "number") {
+      cy.pan({ x: s.px, y: s.py });
+    }
+
+    setVpApplied(true);
+  }, [snapApplied, cyReady, vpApplied]);
 
   // Sync state to URL
   useEffect(() => {
@@ -587,6 +708,17 @@ export default function MapClient() {
     }
   }
 
+  // STEP05.8: Copy share URL
+  async function copyShareUrl() {
+    try {
+      const u = typeof window !== "undefined" ? window.location.href : "";
+      await navigator.clipboard.writeText(u);
+      alert("URL 복사 완료");
+    } catch {
+      alert("복사 실패: 브라우저 권한을 확인하세요.");
+    }
+  }
+
   function TreeView({ node, depth }: { node: TreeNode; depth: number }) {
     if (!node.children) return null;
 
@@ -813,6 +945,23 @@ export default function MapClient() {
         <div style={{ marginLeft: "auto", fontSize: 12, opacity: 0.8 }}>
           filtered: nodes {focusFiltered.nodes.length} · edges {focusFiltered.edges.length}
         </div>
+
+        {/* STEP05.8: Copy Link Button */}
+        <button
+          onClick={copyShareUrl}
+          style={{
+            padding: "6px 12px",
+            background: "#1e40af",
+            color: "#e5e7eb",
+            border: "1px solid #3b82f6",
+            borderRadius: 8,
+            fontSize: 12,
+            cursor: "pointer",
+            fontWeight: 600,
+          }}
+        >
+          링크 복사
+        </button>
       </div>
 
       {/* STEP05.7: Focus Controls */}
@@ -937,6 +1086,7 @@ export default function MapClient() {
             style={{ width: "100%", height: "100%" }}
             cy={(cy: any) => {
               cyRef.current = cy;
+              setCyReady(true);
               cy.on("tap", "node", (evt: any) => {
                 const id = evt.target.data("id") as string;
                 openFileById(id);
