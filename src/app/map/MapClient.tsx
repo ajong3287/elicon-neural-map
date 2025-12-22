@@ -73,6 +73,26 @@ function getFolderOf(filePath: string) {
   return idx >= 0 ? filePath.slice(0, idx) : "";
 }
 
+function getTopDir(label: string) {
+  const p = (label || "").replaceAll("\\", "/");
+  if (!p.includes("/")) return ".";
+  return p.split("/")[0] || ".";
+}
+
+function getExt(label: string) {
+  const base = (label || "").split("/").pop() || "";
+  const i = base.lastIndexOf(".");
+  if (i <= 0) return "(noext)";
+  return base.slice(i + 1).toLowerCase();
+}
+
+function toSortedTop(map: Map<string, number>, topN: number) {
+  const arr = Array.from(map.entries()).sort((a, b) => b[1] - a[1]);
+  const top = arr.slice(0, topN);
+  const rest = arr.slice(topN).reduce((s, [, v]) => s + v, 0);
+  return { top, rest };
+}
+
 export default function MapClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -196,6 +216,69 @@ export default function MapClient() {
 
     return [...clusterNodes, ...nodes, ...edges];
   }, [graph, folderFilter, search, collapsedClusters, scoreRange]);
+
+  const dashNodes = useMemo(() => {
+    // @ts-ignore
+    const g = (typeof graph !== "undefined" && graph && Array.isArray(graph.nodes)) ? graph.nodes : null;
+    return (g ?? []) as any[];
+  }, [graph]);
+
+  const dashEdges = useMemo(() => {
+    // @ts-ignore
+    const g = (typeof graph !== "undefined" && graph && Array.isArray(graph.edges)) ? graph.edges : null;
+    return (g ?? []) as any[];
+  }, [graph]);
+
+  const dashboard = useMemo(() => {
+    const nodes = dashNodes || [];
+    const edges = dashEdges || [];
+
+    const extMap = new Map<string, number>();
+    const dirMap = new Map<string, number>();
+
+    // degree 계산
+    const degree = new Map<string, number>();
+    for (const n of nodes) degree.set(n.id, 0);
+
+    for (const e of edges) {
+      const a = (e.from ?? e.source ?? e.a) as string | undefined;
+      const b = (e.to ?? e.target ?? e.b) as string | undefined;
+      if (!a || !b) continue;
+      degree.set(a, (degree.get(a) ?? 0) + 1);
+      degree.set(b, (degree.get(b) ?? 0) + 1);
+    }
+
+    for (const n of nodes) {
+      const label = (n.label ?? "") as string;
+      const ext = getExt(label);
+      const dir = getTopDir(label);
+      extMap.set(ext, (extMap.get(ext) ?? 0) + 1);
+      dirMap.set(dir, (dirMap.get(dir) ?? 0) + 1);
+    }
+
+    const hubs = nodes
+      .map((n) => ({ id: n.id, label: n.label ?? n.id, deg: degree.get(n.id) ?? 0 }))
+      .sort((a, b) => b.deg - a.deg)
+      .slice(0, 12);
+
+    const isolated = nodes
+      .filter((n) => (degree.get(n.id) ?? 0) === 0)
+      .map((n) => ({ id: n.id, label: n.label ?? n.id }))
+      .slice(0, 30); // 너무 길면 UX 나쁨
+
+    const extTop = toSortedTop(extMap, 12);
+    const dirTop = toSortedTop(dirMap, 12);
+
+    return {
+      nodesCount: nodes.length,
+      edgesCount: edges.length,
+      extTop,
+      dirTop,
+      hubs,
+      isolatedCount: (nodes.filter((n) => (degree.get(n.id) ?? 0) === 0)).length,
+      isolated,
+    };
+  }, [dashNodes, dashEdges]);
 
   useEffect(() => {
     if (!cyRef.current) return;
@@ -630,6 +713,79 @@ export default function MapClient() {
 
         {/* Right Code */}
         <div style={{ display: "flex", flexDirection: "column" }}>
+          {/* Dashboard */}
+          <div style={{ display: "grid", gap: 10, padding: 10, border: "1px solid rgba(0,0,0,0.08)", borderRadius: 12 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+              <div style={{ fontWeight: 700 }}>Dashboard</div>
+              <div style={{ opacity: 0.7, fontSize: 12 }}>
+                nodes {dashboard.nodesCount} · edges {dashboard.edgesCount}
+              </div>
+            </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+              <div style={{ padding: 10, border: "1px solid rgba(0,0,0,0.08)", borderRadius: 12 }}>
+                <div style={{ fontWeight: 700, marginBottom: 6 }}>Top folders</div>
+                {dashboard.dirTop.top.map(([k, v]) => (
+                  <div key={k} style={{ display: "flex", justifyContent: "space-between", fontSize: 12, padding: "2px 0" }}>
+                    <span style={{ opacity: 0.9 }}>{k}</span>
+                    <span style={{ opacity: 0.7 }}>{v}</span>
+                  </div>
+                ))}
+                {dashboard.dirTop.rest > 0 ? (
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, paddingTop: 6, opacity: 0.7 }}>
+                    <span>others</span><span>{dashboard.dirTop.rest}</span>
+                  </div>
+                ) : null}
+              </div>
+
+              <div style={{ padding: 10, border: "1px solid rgba(0,0,0,0.08)", borderRadius: 12 }}>
+                <div style={{ fontWeight: 700, marginBottom: 6 }}>Top extensions</div>
+                {dashboard.extTop.top.map(([k, v]) => (
+                  <div key={k} style={{ display: "flex", justifyContent: "space-between", fontSize: 12, padding: "2px 0" }}>
+                    <span style={{ opacity: 0.9 }}>{k}</span>
+                    <span style={{ opacity: 0.7 }}>{v}</span>
+                  </div>
+                ))}
+                {dashboard.extTop.rest > 0 ? (
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, paddingTop: 6, opacity: 0.7 }}>
+                    <span>others</span><span>{dashboard.extTop.rest}</span>
+                  </div>
+                ) : null}
+              </div>
+            </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+              <div style={{ padding: 10, border: "1px solid rgba(0,0,0,0.08)", borderRadius: 12 }}>
+                <div style={{ fontWeight: 700, marginBottom: 6 }}>Hub nodes</div>
+                {dashboard.hubs.map((h) => (
+                  <div key={h.id} style={{ display: "flex", justifyContent: "space-between", fontSize: 12, padding: "2px 0" }}>
+                    <span style={{ opacity: 0.9, maxWidth: 380, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      {h.label}
+                    </span>
+                    <span style={{ opacity: 0.7 }}>{h.deg}</span>
+                  </div>
+                ))}
+              </div>
+
+              <div style={{ padding: 10, border: "1px solid rgba(0,0,0,0.08)", borderRadius: 12 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 6 }}>
+                  <div style={{ fontWeight: 700 }}>Isolated</div>
+                  <div style={{ opacity: 0.7, fontSize: 12 }}>{dashboard.isolatedCount}</div>
+                </div>
+                {dashboard.isolated.map((n) => (
+                  <div key={n.id} style={{ fontSize: 12, padding: "2px 0", opacity: 0.9, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {n.label}
+                  </div>
+                ))}
+                {dashboard.isolatedCount > dashboard.isolated.length ? (
+                  <div style={{ fontSize: 12, paddingTop: 6, opacity: 0.7 }}>
+                    (+{dashboard.isolatedCount - dashboard.isolated.length} more)
+                  </div>
+                ) : null}
+              </div>
+            </div>
+          </div>
+
           <div style={{ padding: 12, borderBottom: "1px solid #1f2937", display: "flex", gap: 10, alignItems: "center" }}>
             <div style={{ fontWeight: 800 }}>Inspector</div>
             <div style={{ fontSize: 12, opacity: 0.8, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
