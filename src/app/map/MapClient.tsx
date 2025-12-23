@@ -258,6 +258,11 @@ export default function MapClient() {
   // STEP05.16: Safe mode state
   const [safeMode, setSafeMode] = useState<boolean>(false);
 
+  // STEP05.17: Search + Jump state
+  const [searchQ, setSearchQ] = useState("");
+  const [searchResults, setSearchResults] = useState<string[]>([]);
+  const [activeIdx, setActiveIdx] = useState(0);
+
   // STEP05.10: Load saved snaps on mount
   useEffect(() => {
     setSavedSnaps(loadSavedSnaps());
@@ -312,6 +317,58 @@ export default function MapClient() {
     if (typeof window !== "undefined") {
       window.location.href = u;
     }
+  }
+
+  // STEP05.17: Jump to node
+  function jumpToNode(id: string) {
+    if (!id) return;
+
+    // Set focus
+    setFocusId(id);
+
+    // Animate to node if cy is ready
+    if (cyRef.current) {
+      const cy = cyRef.current;
+      const ele = cy.$id(id);
+      if (ele && ele.length > 0) {
+        cy.animate(
+          {
+            center: { eles: ele },
+            zoom: Math.max(cy.zoom(), 1.2),
+          },
+          { duration: 200 }
+        );
+        // Optional: highlight the node
+        ele.select();
+      }
+    }
+  }
+
+  // STEP05.17: Navigate search results
+  function handleNext() {
+    if (searchResults.length === 0) return;
+    const nextIdx = (activeIdx + 1) % searchResults.length;
+    setActiveIdx(nextIdx);
+    jumpToNode(searchResults[nextIdx]);
+  }
+
+  function handlePrev() {
+    if (searchResults.length === 0) return;
+    const prevIdx = (activeIdx - 1 + searchResults.length) % searchResults.length;
+    setActiveIdx(prevIdx);
+    jumpToNode(searchResults[prevIdx]);
+  }
+
+  function handleJump() {
+    if (searchResults.length === 0) return;
+    jumpToNode(searchResults[activeIdx]);
+  }
+
+  function clearSearch() {
+    setSearchQ("");
+    setSearchResults([]);
+    setActiveIdx(0);
+    setFocusId("");
   }
 
   // STEP05.11: Server snapshot functions
@@ -650,6 +707,28 @@ export default function MapClient() {
 
     return [...clusterNodes, ...nodes, ...edges];
   }, [graph, focusFiltered, collapsedClusters]);
+
+  // STEP05.17: Search logic - find matching nodes
+  useEffect(() => {
+    const q = searchQ.trim().toLowerCase();
+    if (!q) {
+      setSearchResults([]);
+      setActiveIdx(0);
+      return;
+    }
+
+    // Search in focusFiltered.nodes (respects current filters)
+    const matches = focusFiltered.nodes.filter((n: any) => {
+      const id = (n.id || "").toLowerCase();
+      const path = (n.path || "").toLowerCase();
+      const label = (n.label || "").toLowerCase();
+      const name = (n.name || "").toLowerCase();
+      return id.includes(q) || path.includes(q) || label.includes(q) || name.includes(q);
+    }).map((n: any) => n.id);
+
+    setSearchResults(matches);
+    setActiveIdx(0); // Reset to first result
+  }, [searchQ, focusFiltered]);
 
   // STEP05.5: Dashboard data
   const dashboard = useMemo(() => {
@@ -1154,6 +1233,89 @@ export default function MapClient() {
 
         <div style={{ fontSize: 12, opacity: 0.7 }}>
           nodes: {graph?.nodes.length ?? 0}
+        </div>
+
+        {/* STEP05.17: Search + Jump */}
+        <div style={{ display: "flex", gap: 6, alignItems: "center", marginLeft: 16, paddingLeft: 16, borderLeft: "1px solid #334155" }}>
+          <input
+            type="text"
+            placeholder="Search node…"
+            value={searchQ}
+            onChange={(e) => setSearchQ(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                if (e.shiftKey) {
+                  handlePrev();
+                } else {
+                  handleNext();
+                }
+              } else if (e.key === "Escape") {
+                clearSearch();
+              }
+            }}
+            style={{
+              padding: "4px 8px",
+              background: "#0f172a",
+              color: "#e5e7eb",
+              border: "1px solid #263041",
+              borderRadius: 8,
+              fontSize: 12,
+              width: 150,
+            }}
+          />
+          {searchResults.length > 0 && (
+            <>
+              <span style={{ fontSize: 11, opacity: 0.7 }}>
+                {searchResults.length} results ({activeIdx + 1}/{searchResults.length})
+              </span>
+              <button
+                onClick={handlePrev}
+                disabled={searchResults.length === 0}
+                style={{
+                  padding: "4px 8px",
+                  background: searchResults.length === 0 ? "#1e293b" : "#334155",
+                  color: searchResults.length === 0 ? "#64748b" : "#e5e7eb",
+                  border: "1px solid #334155",
+                  borderRadius: 6,
+                  fontSize: 11,
+                  cursor: searchResults.length === 0 ? "not-allowed" : "pointer",
+                }}
+              >
+                Prev
+              </button>
+              <button
+                onClick={handleNext}
+                disabled={searchResults.length === 0}
+                style={{
+                  padding: "4px 8px",
+                  background: searchResults.length === 0 ? "#1e293b" : "#334155",
+                  color: searchResults.length === 0 ? "#64748b" : "#e5e7eb",
+                  border: "1px solid #334155",
+                  borderRadius: 6,
+                  fontSize: 11,
+                  cursor: searchResults.length === 0 ? "not-allowed" : "pointer",
+                }}
+              >
+                Next
+              </button>
+              <button
+                onClick={handleJump}
+                disabled={searchResults.length === 0}
+                style={{
+                  padding: "4px 8px",
+                  background: searchResults.length === 0 ? "#1e293b" : "#3b82f6",
+                  color: searchResults.length === 0 ? "#64748b" : "#fff",
+                  border: "1px solid #334155",
+                  borderRadius: 6,
+                  fontSize: 11,
+                  fontWeight: 600,
+                  cursor: searchResults.length === 0 ? "not-allowed" : "pointer",
+                }}
+              >
+                Jump
+              </button>
+            </>
+          )}
         </div>
 
         <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
