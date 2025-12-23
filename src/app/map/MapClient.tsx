@@ -605,8 +605,9 @@ export default function MapClient() {
     }
   }
 
-  // STEP05.22: Create Share Package - PM version
-  async function createSharePackagePM() {
+  // STEP05.22: Create Share Package (unified PM/Dev)
+  // Policy: Auto-save snapshot ONLY if no active snapshot exists
+  async function createSharePackage(kind: "pm" | "dev") {
     try {
       // 1. Check if active snapshot exists
       const currentUrl = typeof window !== "undefined" ? window.location.href : "";
@@ -632,61 +633,14 @@ export default function MapClient() {
         setTimeout(() => setSnapMsg(""), 3000);
       }
 
-      // 3. Generate PM report
-      const md = buildPMReport();
+      // 3. Generate report based on kind
+      const md = kind === "pm" ? buildPMReport() : buildDevReport();
+      const label = kind === "pm" ? "PM" : "Dev";
 
       // 4. Try clipboard copy
       try {
         await navigator.clipboard.writeText(md);
-        setSnapMsg("✅ PM Share Package copied!");
-        setTimeout(() => setSnapMsg(""), 3000);
-      } catch (clipErr) {
-        // 5. Fallback: show textarea
-        setSharePackageText(md);
-        setShowSharePackageFallback(true);
-        setSnapMsg("⚠️ Clipboard blocked - use fallback below");
-        setTimeout(() => setSnapMsg(""), 5000);
-      }
-    } catch (err) {
-      setSnapMsg("ERROR: " + String(err));
-      setTimeout(() => setSnapMsg(""), 5000);
-    }
-  }
-
-  // STEP05.22: Create Share Package - Dev version
-  async function createSharePackageDev() {
-    try {
-      // 1. Check if active snapshot exists
-      const currentUrl = typeof window !== "undefined" ? window.location.href : "";
-      const normalizedUrl = normalizeUrl(currentUrl);
-      let activeSnap = savedSnaps.find((s) => normalizeUrl(s.url) === normalizedUrl);
-
-      // 2. If no active snapshot, auto-save one
-      if (!activeSnap) {
-        const autoName = `Auto_${new Date().toISOString().slice(0, 19).replace(/[T:]/g, "_")}`;
-        const newSnap: SavedSnap = {
-          id: `snap_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
-          name: autoName,
-          url: currentUrl,
-          createdAt: new Date().toISOString(),
-        };
-
-        const updated = [newSnap, ...savedSnaps].slice(0, SNAP_STORE_LIMIT);
-        persistSavedSnaps(updated);
-        setSavedSnaps(updated);
-        activeSnap = newSnap;
-
-        setSnapMsg(`AUTO-SAVED: "${autoName}"`);
-        setTimeout(() => setSnapMsg(""), 3000);
-      }
-
-      // 3. Generate Dev report
-      const md = buildDevReport();
-
-      // 4. Try clipboard copy
-      try {
-        await navigator.clipboard.writeText(md);
-        setSnapMsg("✅ Dev Share Package copied!");
+        setSnapMsg(`✅ ${label} Share Package copied!`);
         setTimeout(() => setSnapMsg(""), 3000);
       } catch (clipErr) {
         // 5. Fallback: show textarea
@@ -2025,7 +1979,7 @@ export default function MapClient() {
             {/* STEP05.22: Create Share Package Buttons */}
             <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 10 }}>
               <button
-                onClick={createSharePackagePM}
+                onClick={() => createSharePackage("pm")}
                 style={{
                   flex: "1 1 160px",
                   padding: "6px 12px",
@@ -2041,7 +1995,7 @@ export default function MapClient() {
                 📦 Share PM
               </button>
               <button
-                onClick={createSharePackageDev}
+                onClick={() => createSharePackage("dev")}
                 style={{
                   flex: "1 1 160px",
                   padding: "6px 12px",
