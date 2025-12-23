@@ -394,8 +394,21 @@ export default function MapClient() {
     const stats = graph?.stats ?? { nodes: 0, edges: 0, clusters: 0, cycles: 0 };
     const { hubs, isolated, isolatedCount } = dashboard;
 
+    // STEP05.20: Find active snapshot
+    const activeSnap = savedSnaps.find((s) => s.url === url);
+
     let md = "# Project Management Report\n\n";
     md += `**Generated**: ${timestamp}\n\n`;
+
+    // STEP05.20: Add snapshot info if present
+    if (activeSnap) {
+      md += `**Snapshot**: ${activeSnap.name}\n`;
+      md += `**Snapshot ID**: ${activeSnap.id}\n`;
+      md += `**Snapshot Created**: ${activeSnap.createdAt}\n\n`;
+    } else {
+      md += `**Snapshot**: (none)\n\n`;
+    }
+
     md += `**Share URL**: ${url}\n\n`;
 
     md += "## Purpose\n\n";
@@ -448,8 +461,21 @@ export default function MapClient() {
     const stats = graph?.stats ?? { nodes: 0, edges: 0, clusters: 0, cycles: 0 };
     const { hubs, isolated, isolatedCount } = dashboard;
 
+    // STEP05.20: Find active snapshot
+    const activeSnap = savedSnaps.find((s) => s.url === url);
+
     let md = "# Development Report\n\n";
     md += `**Generated**: ${timestamp}\n\n`;
+
+    // STEP05.20: Add snapshot info if present
+    if (activeSnap) {
+      md += `**Snapshot**: ${activeSnap.name}\n`;
+      md += `**Snapshot ID**: ${activeSnap.id}\n`;
+      md += `**Snapshot Created**: ${activeSnap.createdAt}\n\n`;
+    } else {
+      md += `**Snapshot**: (none)\n\n`;
+    }
+
     md += `**Share URL**: ${url}\n\n`;
 
     md += "## Graph Metadata\n\n";
