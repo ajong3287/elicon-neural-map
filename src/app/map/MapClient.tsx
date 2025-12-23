@@ -387,6 +387,26 @@ export default function MapClient() {
     setFocusId("");
   }
 
+  // STEP05.21: URL normalization for snapshot matching
+  function normalizeUrl(urlStr: string): string {
+    try {
+      const url = new URL(urlStr);
+      const coreParams = ["cycle", "cluster", "q", "focusId", "focusOnly", "dir", "ext", "hideIsolated", "hubThreshold", "safeMode"];
+      const params = new URLSearchParams();
+
+      coreParams.forEach((key) => {
+        const val = url.searchParams.get(key);
+        if (val !== null) params.set(key, val);
+      });
+
+      params.sort();
+      const normalized = `${url.origin}${url.pathname}${params.toString() ? "?" + params.toString() : ""}`;
+      return normalized;
+    } catch {
+      return urlStr;
+    }
+  }
+
   // STEP05.19: Export Report (2 Templates: PM/Dev)
   function buildPMReport(): string {
     const timestamp = new Date().toISOString();
@@ -394,8 +414,9 @@ export default function MapClient() {
     const stats = graph?.stats ?? { nodes: 0, edges: 0, clusters: 0, cycles: 0 };
     const { hubs, isolated, isolatedCount } = dashboard;
 
-    // STEP05.20: Find active snapshot
-    const activeSnap = savedSnaps.find((s) => s.url === url);
+    // STEP05.21: Find active snapshot with normalized URL matching
+    const normalizedUrl = normalizeUrl(url);
+    const activeSnap = savedSnaps.find((s) => normalizeUrl(s.url) === normalizedUrl);
 
     let md = "# Project Management Report\n\n";
     md += `**Generated**: ${timestamp}\n\n`;
@@ -461,8 +482,9 @@ export default function MapClient() {
     const stats = graph?.stats ?? { nodes: 0, edges: 0, clusters: 0, cycles: 0 };
     const { hubs, isolated, isolatedCount } = dashboard;
 
-    // STEP05.20: Find active snapshot
-    const activeSnap = savedSnaps.find((s) => s.url === url);
+    // STEP05.21: Find active snapshot with normalized URL matching
+    const normalizedUrl = normalizeUrl(url);
+    const activeSnap = savedSnaps.find((s) => normalizeUrl(s.url) === normalizedUrl);
 
     let md = "# Development Report\n\n";
     md += `**Generated**: ${timestamp}\n\n`;
@@ -1808,7 +1830,31 @@ export default function MapClient() {
 
           {/* STEP05.19: Export Report (PM/Dev Templates) */}
           <div style={{ padding: 10, borderBottom: "1px solid #1f2937" }}>
-            <div style={{ fontWeight: 700, marginBottom: 8, fontSize: 12 }}>Export Report</div>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
+              <div style={{ fontWeight: 700, fontSize: 12 }}>Export Report</div>
+              {(() => {
+                // STEP05.21: Show active snapshot badge in Export Report header
+                const currentUrl = typeof window !== "undefined" ? window.location.href : "";
+                const normalizedUrl = normalizeUrl(currentUrl);
+                const activeSnap = savedSnaps.find((s) => normalizeUrl(s.url) === normalizedUrl);
+
+                return activeSnap ? (
+                  <div
+                    style={{
+                      padding: "2px 6px",
+                      background: "#3b82f6",
+                      color: "#fff",
+                      borderRadius: 4,
+                      fontSize: 9,
+                      fontWeight: 700,
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {activeSnap.name}
+                  </div>
+                ) : null;
+              })()}
+            </div>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
               <button
                 onClick={copyPMReport}
@@ -2040,30 +2086,52 @@ export default function MapClient() {
                   저장된 스냅샷이 없습니다.
                 </div>
               ) : (
-                savedSnaps.map((snap) => (
-                  <div
-                    key={snap.id}
-                    style={{
-                      padding: "6px 8px",
-                      marginBottom: 4,
-                      background: "#0f172a",
-                      border: "1px solid #263041",
-                      borderRadius: 6,
-                      fontSize: 11,
-                    }}
-                  >
+                savedSnaps.map((snap) => {
+                  // STEP05.21: Check if this snapshot is active (matches current URL)
+                  const currentUrl = typeof window !== "undefined" ? window.location.href : "";
+                  const isActive = normalizeUrl(snap.url) === normalizeUrl(currentUrl);
+
+                  return (
                     <div
+                      key={snap.id}
                       style={{
-                        fontWeight: 600,
+                        padding: "6px 8px",
                         marginBottom: 4,
-                        color: "#cbd5e1",
-                        whiteSpace: "nowrap",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
+                        background: isActive ? "#1e40af15" : "#0f172a",
+                        border: isActive ? "1px solid #3b82f6" : "1px solid #263041",
+                        borderRadius: 6,
+                        fontSize: 11,
                       }}
                     >
-                      {snap.name}
-                    </div>
+                      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
+                        <div
+                          style={{
+                            flex: 1,
+                            fontWeight: 600,
+                            color: "#cbd5e1",
+                            whiteSpace: "nowrap",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                          }}
+                        >
+                          {snap.name}
+                        </div>
+                        {isActive && (
+                          <div
+                            style={{
+                              padding: "2px 6px",
+                              background: "#3b82f6",
+                              color: "#fff",
+                              borderRadius: 4,
+                              fontSize: 9,
+                              fontWeight: 700,
+                              whiteSpace: "nowrap",
+                            }}
+                          >
+                            활성
+                          </div>
+                        )}
+                      </div>
                     <div
                       style={{
                         fontSize: 10,
@@ -2121,7 +2189,8 @@ export default function MapClient() {
                       </button>
                     </div>
                   </div>
-                ))
+                  );
+                })
               )}
             </div>
           </div>
