@@ -252,6 +252,10 @@ export default function MapClient() {
   const [savedSnaps, setSavedSnaps] = useState<SavedSnap[]>([]);
   const [snapMsg, setSnapMsg] = useState("");
 
+  // STEP05.22: Share Package fallback UI state
+  const [sharePackageText, setSharePackageText] = useState("");
+  const [showSharePackageFallback, setShowSharePackageFallback] = useState(false);
+
   // STEP05.11: Server snapshot state
   const [uploadToken, setUploadToken] = useState("");
 
@@ -598,6 +602,102 @@ export default function MapClient() {
       URL.revokeObjectURL(url);
     } catch (err) {
       alert("Failed to download Dev report: " + String(err));
+    }
+  }
+
+  // STEP05.22: Create Share Package - PM version
+  async function createSharePackagePM() {
+    try {
+      // 1. Check if active snapshot exists
+      const currentUrl = typeof window !== "undefined" ? window.location.href : "";
+      const normalizedUrl = normalizeUrl(currentUrl);
+      let activeSnap = savedSnaps.find((s) => normalizeUrl(s.url) === normalizedUrl);
+
+      // 2. If no active snapshot, auto-save one
+      if (!activeSnap) {
+        const autoName = `Auto_${new Date().toISOString().slice(0, 19).replace(/[T:]/g, "_")}`;
+        const newSnap: SavedSnap = {
+          id: `snap_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
+          name: autoName,
+          url: currentUrl,
+          createdAt: new Date().toISOString(),
+        };
+
+        const updated = [newSnap, ...savedSnaps].slice(0, SNAP_STORE_LIMIT);
+        persistSavedSnaps(updated);
+        setSavedSnaps(updated);
+        activeSnap = newSnap;
+
+        setSnapMsg(`AUTO-SAVED: "${autoName}"`);
+        setTimeout(() => setSnapMsg(""), 3000);
+      }
+
+      // 3. Generate PM report
+      const md = buildPMReport();
+
+      // 4. Try clipboard copy
+      try {
+        await navigator.clipboard.writeText(md);
+        setSnapMsg("✅ PM Share Package copied!");
+        setTimeout(() => setSnapMsg(""), 3000);
+      } catch (clipErr) {
+        // 5. Fallback: show textarea
+        setSharePackageText(md);
+        setShowSharePackageFallback(true);
+        setSnapMsg("⚠️ Clipboard blocked - use fallback below");
+        setTimeout(() => setSnapMsg(""), 5000);
+      }
+    } catch (err) {
+      setSnapMsg("ERROR: " + String(err));
+      setTimeout(() => setSnapMsg(""), 5000);
+    }
+  }
+
+  // STEP05.22: Create Share Package - Dev version
+  async function createSharePackageDev() {
+    try {
+      // 1. Check if active snapshot exists
+      const currentUrl = typeof window !== "undefined" ? window.location.href : "";
+      const normalizedUrl = normalizeUrl(currentUrl);
+      let activeSnap = savedSnaps.find((s) => normalizeUrl(s.url) === normalizedUrl);
+
+      // 2. If no active snapshot, auto-save one
+      if (!activeSnap) {
+        const autoName = `Auto_${new Date().toISOString().slice(0, 19).replace(/[T:]/g, "_")}`;
+        const newSnap: SavedSnap = {
+          id: `snap_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
+          name: autoName,
+          url: currentUrl,
+          createdAt: new Date().toISOString(),
+        };
+
+        const updated = [newSnap, ...savedSnaps].slice(0, SNAP_STORE_LIMIT);
+        persistSavedSnaps(updated);
+        setSavedSnaps(updated);
+        activeSnap = newSnap;
+
+        setSnapMsg(`AUTO-SAVED: "${autoName}"`);
+        setTimeout(() => setSnapMsg(""), 3000);
+      }
+
+      // 3. Generate Dev report
+      const md = buildDevReport();
+
+      // 4. Try clipboard copy
+      try {
+        await navigator.clipboard.writeText(md);
+        setSnapMsg("✅ Dev Share Package copied!");
+        setTimeout(() => setSnapMsg(""), 3000);
+      } catch (clipErr) {
+        // 5. Fallback: show textarea
+        setSharePackageText(md);
+        setShowSharePackageFallback(true);
+        setSnapMsg("⚠️ Clipboard blocked - use fallback below");
+        setTimeout(() => setSnapMsg(""), 5000);
+      }
+    } catch (err) {
+      setSnapMsg("ERROR: " + String(err));
+      setTimeout(() => setSnapMsg(""), 5000);
     }
   }
 
@@ -1921,6 +2021,89 @@ export default function MapClient() {
                 Download Dev
               </button>
             </div>
+
+            {/* STEP05.22: Create Share Package Buttons */}
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 10 }}>
+              <button
+                onClick={createSharePackagePM}
+                style={{
+                  flex: "1 1 160px",
+                  padding: "6px 12px",
+                  background: "#f59e0b",
+                  color: "#fff",
+                  border: "none",
+                  borderRadius: 8,
+                  fontSize: 11,
+                  cursor: "pointer",
+                  fontWeight: 600,
+                }}
+              >
+                📦 Share PM
+              </button>
+              <button
+                onClick={createSharePackageDev}
+                style={{
+                  flex: "1 1 160px",
+                  padding: "6px 12px",
+                  background: "#ec4899",
+                  color: "#fff",
+                  border: "none",
+                  borderRadius: 8,
+                  fontSize: 11,
+                  cursor: "pointer",
+                  fontWeight: 600,
+                }}
+              >
+                📦 Share Dev
+              </button>
+            </div>
+
+            {/* STEP05.22: Fallback Textarea (shown when clipboard fails) */}
+            {showSharePackageFallback && (
+              <div style={{ marginTop: 10 }}>
+                <div style={{ fontSize: 10, marginBottom: 4, color: "#fbbf24" }}>
+                  Clipboard blocked - Select All (Cmd+A) and Copy (Cmd+C):
+                </div>
+                <textarea
+                  value={sharePackageText}
+                  readOnly
+                  onClick={(e) => {
+                    const target = e.target as HTMLTextAreaElement;
+                    target.select();
+                  }}
+                  style={{
+                    width: "100%",
+                    height: 120,
+                    padding: "6px 8px",
+                    background: "#0f172a",
+                    color: "#e5e7eb",
+                    border: "1px solid #f59e0b",
+                    borderRadius: 8,
+                    fontSize: 10,
+                    fontFamily: "monospace",
+                    resize: "vertical",
+                  }}
+                />
+                <button
+                  onClick={() => {
+                    setShowSharePackageFallback(false);
+                    setSharePackageText("");
+                  }}
+                  style={{
+                    marginTop: 6,
+                    padding: "4px 10px",
+                    background: "#374151",
+                    color: "#fff",
+                    border: "none",
+                    borderRadius: 6,
+                    fontSize: 10,
+                    cursor: "pointer",
+                  }}
+                >
+                  Close
+                </button>
+              </div>
+            )}
           </div>
 
           {/* STEP05.10: Snapshot History Panel */}
