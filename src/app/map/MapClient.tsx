@@ -10,6 +10,9 @@ import Editor from "@monaco-editor/react";
 
 cytoscape.use(fcose as any);
 
+// STEP05.16: Safe mode threshold
+const SAFE_THRESHOLD = 160;
+
 type GNode = { id: string; label: string; ext: string; path: string; degree?: number; score?: number };
 type GEdge = { source: string; target: string; type: string; cycle?: boolean };
 type GCluster = { id: string; label: string; nodeIds: string[] };
@@ -203,8 +206,7 @@ export default function MapClient() {
 
   const [graph, setGraph] = useState<Graph | null>(null);
 
-  // Upload state
-  const [uploadToken, setUploadToken] = useState("");
+  // Upload state (moved to STEP05.11)
   const [uploadMsg, setUploadMsg] = useState<string | null>(null);
 
   // Read initial state from URL
@@ -252,6 +254,9 @@ export default function MapClient() {
 
   // STEP05.11: Server snapshot state
   const [uploadToken, setUploadToken] = useState("");
+
+  // STEP05.16: Safe mode state
+  const [safeMode, setSafeMode] = useState<boolean>(false);
 
   // STEP05.10: Load saved snaps on mount
   useEffect(() => {
@@ -349,6 +354,13 @@ export default function MapClient() {
       setGraph(g);
     })();
   }, []);
+
+  // STEP05.16: Auto-calculate safe mode based on node count
+  useEffect(() => {
+    if (graph && graph.nodes) {
+      setSafeMode(graph.nodes.length > SAFE_THRESHOLD);
+    }
+  }, [graph]);
 
   // STEP05.8: URL → State restoration (initial load)
   useEffect(() => {
@@ -775,17 +787,17 @@ export default function MapClient() {
       })
       .update();
 
-    // Performance-optimized layout based on node count
+    // STEP05.16: Safe mode layout based on node count
     const nodeCount = cy.nodes().length;
     const layoutOptions: any = {
       name: "fcose",
       fit: true,
       padding: 40,
-      // Optimize for different node counts
-      animate: nodeCount < 100, // Disable animation for large graphs
+      animate: !safeMode && nodeCount < 100, // Disable animation in safe mode or large graphs
       randomize: false,
-      quality: nodeCount < 100 ? "default" : nodeCount < 500 ? "draft" : "draft",
-      numIter: nodeCount < 100 ? 2500 : nodeCount < 500 ? 1500 : 1000,
+      // STEP05.16: Safe mode uses minimal iterations to prevent freezing
+      quality: safeMode ? "draft" : (nodeCount < 100 ? "default" : "draft"),
+      numIter: safeMode ? 0 : (nodeCount < 100 ? 2500 : nodeCount < 500 ? 1500 : 1000),
       // Rendering optimizations
       ...(nodeCount >= 500 && {
         tile: true,
@@ -802,7 +814,7 @@ export default function MapClient() {
     }
 
     cy.layout(layoutOptions).run();
-  }, [elements]);
+  }, [elements, safeMode]);
 
   // Cycle highlight effect
   useEffect(() => {
@@ -1129,6 +1141,20 @@ export default function MapClient() {
           />
           hide isolated
         </label>
+
+        {/* STEP05.16: Safe mode toggle */}
+        <label style={{ display: "flex", gap: 6, alignItems: "center", fontSize: 12, opacity: 0.9 }}>
+          <input
+            type="checkbox"
+            checked={safeMode}
+            onChange={(e) => setSafeMode(e.target.checked)}
+          />
+          safe mode
+        </label>
+
+        <div style={{ fontSize: 12, opacity: 0.7 }}>
+          nodes: {graph?.nodes.length ?? 0}
+        </div>
 
         <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
           <span style={{ fontSize: 12, opacity: 0.8 }}>hub ≥ {hubThreshold}</span>
