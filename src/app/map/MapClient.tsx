@@ -155,6 +155,7 @@ type SavedSnap = {
 
 const SNAP_STORE_KEY = "neuralmap_saved_snaps_v1";
 const SNAP_STORE_LIMIT = 30;
+const ISSUE_REPO_TARGET = "neuralmap_issue_repo_target";
 
 function safeParseJSON<T>(s: string | null, fallback: T): T {
   if (!s) return fallback;
@@ -260,6 +261,9 @@ export default function MapClient() {
   const [issueText, setIssueText] = useState("");
   const [showIssueFallback, setShowIssueFallback] = useState(false);
 
+  // STEP05.24: Target Repo state (with localStorage)
+  const [issueRepo, setIssueRepo] = useState<string>("ajong3287/elicon-neural-map");
+
   // STEP05.11: Server snapshot state
   const [uploadToken, setUploadToken] = useState("");
 
@@ -279,6 +283,18 @@ export default function MapClient() {
   useEffect(() => {
     setSavedSnaps(loadSavedSnaps());
   }, []);
+
+  // STEP05.24: Load/save issueRepo from/to localStorage
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const saved = window.localStorage.getItem(ISSUE_REPO_TARGET);
+    if (saved) setIssueRepo(saved);
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem(ISSUE_REPO_TARGET, issueRepo);
+  }, [issueRepo]);
 
   // STEP05.20.2: Responsive breakpoint detection
   useEffect(() => {
@@ -654,6 +670,58 @@ export default function MapClient() {
       setShowIssueFallback(true);
       setSnapMsg("⚠️ Clipboard blocked - use fallback below");
       setTimeout(() => setSnapMsg(""), 5000);
+    }
+  }
+
+  // STEP05.24: Open GitHub Issue with auto-snapshot
+  async function openIssue(kind: "bug" | "feature") {
+    try {
+      // 1. Check if active snapshot exists
+      const currentUrl = typeof window !== "undefined" ? window.location.href : "";
+      const normalizedUrl = normalizeUrl(currentUrl);
+      let activeSnap = savedSnaps.find((s) => normalizeUrl(s.url) === normalizedUrl);
+
+      // 2. Auto-save snapshot if none exists
+      if (!activeSnap) {
+        const autoName = `auto_${new Date().toISOString().slice(0, 16).replace("T", "_")}`;
+        const newSnap: SavedSnap = {
+          id: `snap_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
+          name: autoName,
+          url: currentUrl,
+          createdAt: new Date().toISOString(),
+        };
+        const updated = [...savedSnaps, newSnap];
+        setSavedSnaps(updated);
+        persistSavedSnaps(updated);
+        activeSnap = newSnap;
+        setSnapMsg(`📸 Auto-saved: ${autoName}`);
+        setTimeout(() => setSnapMsg(""), 3000);
+      }
+
+      // 3. Build and copy issue markdown
+      const md = buildIssueMd(kind);
+      await navigator.clipboard.writeText(md);
+
+      // 4. Open GitHub issue page in new tab
+      const title = kind === "bug" ? "[BUG] " : "[FEAT] ";
+      const githubUrl = `https://github.com/${issueRepo}/issues/new?title=${encodeURIComponent(title)}`;
+      window.open(githubUrl, "_blank");
+
+      const label = kind === "bug" ? "Bug" : "Feature";
+      setSnapMsg(`🚀 ${label} issue opened in GitHub!`);
+      setTimeout(() => setSnapMsg(""), 3000);
+    } catch (err) {
+      // Clipboard failed - show fallback textarea
+      const md = buildIssueMd(kind);
+      setIssueText(md);
+      setShowIssueFallback(true);
+      setSnapMsg("⚠️ Clipboard blocked - use fallback below");
+      setTimeout(() => setSnapMsg(""), 5000);
+
+      // Still open GitHub even if clipboard failed
+      const title = kind === "bug" ? "[BUG] " : "[FEAT] ";
+      const githubUrl = `https://github.com/${issueRepo}/issues/new?title=${encodeURIComponent(title)}`;
+      window.open(githubUrl, "_blank");
     }
   }
 
@@ -2152,6 +2220,63 @@ export default function MapClient() {
               >
                 ✨ Copy Issue (Feature)
               </button>
+            </div>
+
+            {/* STEP05.24: Target Repo & Open Issue Buttons */}
+            <div style={{ marginTop: 10, borderTop: "1px solid #1f2937", paddingTop: 10 }}>
+              <div style={{ fontSize: 10, marginBottom: 6, color: "#9ca3af" }}>
+                Target Repo (owner/repo):
+              </div>
+              <input
+                type="text"
+                value={issueRepo}
+                onChange={(e) => setIssueRepo(e.target.value)}
+                placeholder="ajong3287/elicon-neural-map"
+                style={{
+                  width: "100%",
+                  padding: "6px 8px",
+                  background: "#0f172a",
+                  color: "#e5e7eb",
+                  border: "1px solid #263041",
+                  borderRadius: 8,
+                  fontSize: 11,
+                  marginBottom: 8,
+                }}
+              />
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                <button
+                  onClick={() => openIssue("bug")}
+                  style={{
+                    flex: "1 1 160px",
+                    padding: "6px 12px",
+                    background: "#dc2626",
+                    color: "#fff",
+                    border: "none",
+                    borderRadius: 8,
+                    fontSize: 11,
+                    cursor: "pointer",
+                    fontWeight: 600,
+                  }}
+                >
+                  🚀 Open Issue (Bug)
+                </button>
+                <button
+                  onClick={() => openIssue("feature")}
+                  style={{
+                    flex: "1 1 160px",
+                    padding: "6px 12px",
+                    background: "#16a34a",
+                    color: "#fff",
+                    border: "none",
+                    borderRadius: 8,
+                    fontSize: 11,
+                    cursor: "pointer",
+                    fontWeight: 600,
+                  }}
+                >
+                  🚀 Open Issue (Feature)
+                </button>
+              </div>
             </div>
 
             {/* STEP05.22: Fallback Textarea (shown when clipboard fails) */}
