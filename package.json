@@ -1,0 +1,37 @@
+{
+  "name": "elicon-neural-map",
+  "version": "0.1.7",
+  "private": true,
+  "scripts": {
+    "dev": "next dev -p 3001",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "build:graph": "node tools/build-graph.mjs --out ./public/graph.json",
+    "dev:all": "node tools/watch-graph.mjs & pnpm dev"
+  },
+  "dependencies": {
+    "@babel/parser": "^7.28.5",
+    "@babel/traverse": "^7.28.5",
+    "@monaco-editor/react": "^4.7.0",
+    "@vercel/kv": "^3.0.0",
+    "chokidar": "^5.0.0",
+    "cytoscape": "^3.28.1",
+    "cytoscape-fcose": "^2.2.0",
+    "dotenv": "^17.2.3",
+    "fast-glob": "^3.3.3",
+    "next": "^14",
+    "react": "^18",
+    "react-cytoscapejs": "^2.0.0",
+    "react-dom": "^18",
+    "yargs": "^18.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "@types/react": "^18",
+    "@types/react-dom": "^18",
+    "eslint": "^8",
+    "eslint-config-next": "^14",
+    "typescript": "^5"
+  }
+}
