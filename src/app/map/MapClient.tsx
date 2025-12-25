@@ -156,6 +156,8 @@ type SavedSnap = {
 const SNAP_STORE_KEY = "neuralmap_saved_snaps_v1";
 const SNAP_STORE_LIMIT = 30;
 const ISSUE_REPO_TARGET = "neuralmap_issue_repo_target";
+const SHARE_UPLOAD_TOKEN = "neuralmap_share_upload_token";
+const AUTO_UPLOAD_KEY = "neuralmap_auto_upload";
 
 function safeParseJSON<T>(s: string | null, fallback: T): T {
   if (!s) return fallback;
@@ -264,6 +266,10 @@ export default function MapClient() {
   // STEP05.24: Target Repo state (with localStorage)
   const [issueRepo, setIssueRepo] = useState<string>("ajong3287/elicon-neural-map");
 
+  // STEP05.25: Share Package Upload state (with localStorage)
+  const [shareUploadToken, setShareUploadToken] = useState<string>("");
+  const [autoUpload, setAutoUpload] = useState<boolean>(false);
+
   // STEP05.11: Server snapshot state
   const [uploadToken, setUploadToken] = useState("");
 
@@ -295,6 +301,25 @@ export default function MapClient() {
     if (typeof window === "undefined") return;
     window.localStorage.setItem(ISSUE_REPO_TARGET, issueRepo);
   }, [issueRepo]);
+
+  // STEP05.25: Load/save shareUploadToken and autoUpload from/to localStorage
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const savedToken = window.localStorage.getItem(SHARE_UPLOAD_TOKEN);
+    const savedAutoUpload = window.localStorage.getItem(AUTO_UPLOAD_KEY);
+    if (savedToken) setShareUploadToken(savedToken);
+    if (savedAutoUpload === "true") setAutoUpload(true);
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem(SHARE_UPLOAD_TOKEN, shareUploadToken);
+  }, [shareUploadToken]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem(AUTO_UPLOAD_KEY, autoUpload ? "true" : "false");
+  }, [autoUpload]);
 
   // STEP05.20.2: Responsive breakpoint detection
   useEffect(() => {
@@ -779,7 +804,7 @@ export default function MapClient() {
     }
   }
 
-  // STEP05.22: Create Share Package (unified PM/Dev)
+  // STEP05.22/05.25: Create Share Package (unified PM/Dev with optional server upload)
   // Policy: Auto-save snapshot ONLY if no active snapshot exists
   async function createSharePackage(kind: "pm" | "dev") {
     try {
@@ -808,16 +833,54 @@ export default function MapClient() {
       }
 
       // 3. Generate report based on kind
-      const md = kind === "pm" ? buildPMReport() : buildDevReport();
+      let md = kind === "pm" ? buildPMReport() : buildDevReport();
       const label = kind === "pm" ? "PM" : "Dev";
 
-      // 4. Try clipboard copy
+      // 4. STEP05.25: Upload to server if autoUpload is enabled
+      if (autoUpload && shareUploadToken) {
+        try {
+          const uploadResponse = await fetch("/api/share-packages", {
+            method: "POST",
+            headers: {
+              "content-type": "application/json",
+              "x-share-token": shareUploadToken,
+            },
+            body: JSON.stringify({
+              kind,
+              reportMd: md,
+              snapshot: activeSnap,
+              normalizedUrl,
+              createdAt: new Date().toISOString(),
+            }),
+          });
+
+          if (!uploadResponse.ok) {
+            throw new Error(`Upload failed: ${uploadResponse.status}`);
+          }
+
+          const uploadData = await uploadResponse.json();
+          if (uploadData.ok && uploadData.id && uploadData.url) {
+            // Prepend Package ID and URL to markdown
+            const packageHeader = `**Package ID**: ${uploadData.id}\n**Package URL**: ${uploadData.url}\n\n---\n\n`;
+            md = packageHeader + md;
+            setSnapMsg(`📦 ${label} Package uploaded! ID: ${uploadData.id}`);
+          }
+        } catch (uploadErr) {
+          setSnapMsg(`⚠️ Upload failed: ${String(uploadErr)}`);
+          setTimeout(() => setSnapMsg(""), 5000);
+          // Continue with local copy even if upload fails
+        }
+      }
+
+      // 5. Try clipboard copy
       try {
         await navigator.clipboard.writeText(md);
-        setSnapMsg(`✅ ${label} Share Package copied!`);
+        if (!autoUpload || !shareUploadToken) {
+          setSnapMsg(`✅ ${label} Share Package copied!`);
+        }
         setTimeout(() => setSnapMsg(""), 3000);
       } catch (clipErr) {
-        // 5. Fallback: show textarea
+        // 6. Fallback: show textarea
         setSharePackageText(md);
         setShowSharePackageFallback(true);
         setSnapMsg("⚠️ Clipboard blocked - use fallback below");
@@ -2184,6 +2247,47 @@ export default function MapClient() {
               >
                 📦 Share Dev
               </button>
+            </div>
+
+            {/* STEP05.25: Share Upload Settings */}
+            <div style={{ marginTop: 10, borderTop: "1px solid #1f2937", paddingTop: 10 }}>
+              <div style={{ fontSize: 10, marginBottom: 6, color: "#9ca3af" }}>
+                Share Upload Token:
+              </div>
+              <input
+                type="password"
+                value={shareUploadToken}
+                onChange={(e) => setShareUploadToken(e.target.value)}
+                placeholder="Enter upload token"
+                style={{
+                  width: "100%",
+                  padding: "6px 8px",
+                  background: "#0f172a",
+                  color: "#e2e8f0",
+                  border: "1px solid #263041",
+                  borderRadius: 4,
+                  fontSize: 10,
+                  marginBottom: 8,
+                }}
+              />
+              <label
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
+                  fontSize: 10,
+                  color: "#9ca3af",
+                  cursor: "pointer",
+                }}
+              >
+                <input
+                  type="checkbox"
+                  checked={autoUpload}
+                  onChange={(e) => setAutoUpload(e.target.checked)}
+                  style={{ cursor: "pointer" }}
+                />
+                Auto Upload Share Packages
+              </label>
             </div>
 
             {/* STEP05.23: Issue Composer Buttons */}
