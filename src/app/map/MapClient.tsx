@@ -571,37 +571,57 @@ export default function MapClient() {
     }
   }
 
-  function downloadPMReport() {
+  // STEP05.23: Download Share Package (unified PM/Dev with snapshot name)
+  // Policy: Auto-save snapshot ONLY if no active snapshot exists
+  function downloadSharePackage(kind: "pm" | "dev") {
     try {
-      const md = buildPMReport();
-      const blob = new Blob([md], { type: "text/markdown;charset=utf-8" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `neural-map-pm-report-${new Date().toISOString().slice(0, 19).replace(/:/g, "-")}.md`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    } catch (err) {
-      alert("Failed to download PM report: " + String(err));
-    }
-  }
+      // 1. Check if active snapshot exists
+      const currentUrl = typeof window !== "undefined" ? window.location.href : "";
+      const normalizedUrl = normalizeUrl(currentUrl);
+      let activeSnap = savedSnaps.find((s) => normalizeUrl(s.url) === normalizedUrl);
 
-  function downloadDevReport() {
-    try {
-      const md = buildDevReport();
+      // 2. If no active snapshot, auto-save one
+      if (!activeSnap) {
+        const autoName = `Auto_${new Date().toISOString().slice(0, 19).replace(/[T:]/g, "_")}`;
+        const newSnap: SavedSnap = {
+          id: `snap_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
+          name: autoName,
+          url: currentUrl,
+          createdAt: new Date().toISOString(),
+        };
+
+        const updated = [newSnap, ...savedSnaps].slice(0, SNAP_STORE_LIMIT);
+        persistSavedSnaps(updated);
+        setSavedSnaps(updated);
+        activeSnap = newSnap;
+
+        setSnapMsg(`AUTO-SAVED: "${autoName}"`);
+        setTimeout(() => setSnapMsg(""), 3000);
+      }
+
+      // 3. Generate report based on kind
+      const md = kind === "pm" ? buildPMReport() : buildDevReport();
+      const label = kind === "pm" ? "PM" : "DEV";
+
+      // 4. Download as file with snapshot name
+      const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, "-");
+      const fileName = `${activeSnap.name}_${label}_${timestamp}.md`;
+
       const blob = new Blob([md], { type: "text/markdown;charset=utf-8" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `neural-map-dev-report-${new Date().toISOString().slice(0, 19).replace(/:/g, "-")}.md`;
+      a.download = fileName;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
+
+      setSnapMsg(`✅ Downloaded: ${fileName}`);
+      setTimeout(() => setSnapMsg(""), 3000);
     } catch (err) {
-      alert("Failed to download Dev report: " + String(err));
+      setSnapMsg("ERROR: " + String(err));
+      setTimeout(() => setSnapMsg(""), 5000);
     }
   }
 
@@ -1943,7 +1963,7 @@ export default function MapClient() {
                 Copy Dev
               </button>
               <button
-                onClick={downloadPMReport}
+                onClick={() => downloadSharePackage("pm")}
                 style={{
                   flex: "1 1 160px",
                   padding: "6px 12px",
@@ -1959,7 +1979,7 @@ export default function MapClient() {
                 Download PM
               </button>
               <button
-                onClick={downloadDevReport}
+                onClick={() => downloadSharePackage("dev")}
                 style={{
                   flex: "1 1 160px",
                   padding: "6px 12px",
