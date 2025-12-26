@@ -34,8 +34,14 @@ export async function GET(req: Request) {
     const txt = fs.readFileSync(p, "utf-8");
     const pkg = JSON.parse(txt);
 
+    // STEP05.29: Prepend Issue URL section if exists
+    let content = pkg.reportMd;
+    if (pkg.issueUrl) {
+      content = `**Issue URL**: ${pkg.issueUrl}\n\n---\n\n${content}`;
+    }
+
     // Return markdown content as text/plain for easy viewing
-    return new NextResponse(pkg.reportMd, {
+    return new NextResponse(content, {
       status: 200,
       headers: {
         "content-type": "text/plain; charset=utf-8",
@@ -93,6 +99,58 @@ export async function POST(req: Request) {
       id,
       url,
       bytes: Buffer.byteLength(reportMd, "utf-8"),
+    }, { status: 200 });
+  } catch (e: any) {
+    return NextResponse.json({ ok: false, error: e?.message ?? String(e) }, { status: 500 });
+  }
+}
+
+// PATCH /api/share-packages
+// Header: x-share-token
+// Body: { id, issueUrl, targetRepo?, issueTitle? }
+export async function PATCH(req: Request) {
+  try {
+    const token = getToken();
+    const auth = req.headers.get("x-share-token") || "";
+
+    if (!token || auth !== token) {
+      return NextResponse.json({ ok: false, error: "UNAUTHORIZED" }, { status: 401 });
+    }
+
+    const body = await req.json();
+    const { id, issueUrl, targetRepo, issueTitle } = body;
+
+    if (!id || !issueUrl) {
+      return NextResponse.json({ ok: false, error: "MISSING_FIELDS" }, { status: 400 });
+    }
+
+    // Validate issueUrl format
+    if (!issueUrl.startsWith("http://") && !issueUrl.startsWith("https://")) {
+      return NextResponse.json({ ok: false, error: "INVALID_URL" }, { status: 400 });
+    }
+
+    const p = packagePath(id);
+    if (!fs.existsSync(p)) {
+      return NextResponse.json({ ok: false, error: "NOT_FOUND" }, { status: 404 });
+    }
+
+    // Read existing package
+    const txt = fs.readFileSync(p, "utf-8");
+    const pkg = JSON.parse(txt);
+
+    // Update with issueUrl and optional metadata
+    pkg.issueUrl = issueUrl;
+    if (targetRepo) pkg.targetRepo = targetRepo;
+    if (issueTitle) pkg.issueTitle = issueTitle;
+    pkg.updatedAt = new Date().toISOString();
+
+    // Write back
+    fs.writeFileSync(p, JSON.stringify(pkg, null, 2), "utf-8");
+
+    return NextResponse.json({
+      ok: true,
+      id,
+      issueUrl,
     }, { status: 200 });
   } catch (e: any) {
     return NextResponse.json({ ok: false, error: e?.message ?? String(e) }, { status: 500 });
