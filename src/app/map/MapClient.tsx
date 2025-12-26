@@ -158,6 +158,9 @@ const SNAP_STORE_LIMIT = 30;
 const ISSUE_REPO_TARGET = "neuralmap_issue_repo_target";
 const SHARE_UPLOAD_TOKEN = "neuralmap_share_upload_token";
 const AUTO_UPLOAD_KEY = "neuralmap_auto_upload";
+const TARGET_REPO_KEY = "neuralmap_target_repo";
+const GH_ISSUE_TOKEN = "neuralmap_gh_issue_token";
+const AUTO_CREATE_ISSUE_KEY = "neuralmap_auto_create_issue";
 
 function safeParseJSON<T>(s: string | null, fallback: T): T {
   if (!s) return fallback;
@@ -275,6 +278,13 @@ export default function MapClient() {
   const [lastPkgUrl, setLastPkgUrl] = useState<string>("");
   const [issueTitle, setIssueTitle] = useState<string>("");
 
+  // STEP05.27: GitHub Issue Auto-Create state (with localStorage)
+  const [targetRepo, setTargetRepo] = useState<string>("ajong3287/50_퀴즈도전개발");
+  const [ghToken, setGhToken] = useState<string>("");
+  const [autoCreateIssue, setAutoCreateIssue] = useState<boolean>(false);
+  const [issueLabels, setIssueLabels] = useState<string[]>([]);
+  const [lastIssueUrl, setLastIssueUrl] = useState<string>("");
+
   // STEP05.11: Server snapshot state
   const [uploadToken, setUploadToken] = useState("");
 
@@ -325,6 +335,32 @@ export default function MapClient() {
     if (typeof window === "undefined") return;
     window.localStorage.setItem(AUTO_UPLOAD_KEY, autoUpload ? "true" : "false");
   }, [autoUpload]);
+
+  // STEP05.27: Load/save targetRepo, ghToken, autoCreateIssue from/to localStorage
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const savedTargetRepo = window.localStorage.getItem(TARGET_REPO_KEY);
+    const savedGhToken = window.localStorage.getItem(GH_ISSUE_TOKEN);
+    const savedAutoCreate = window.localStorage.getItem(AUTO_CREATE_ISSUE_KEY);
+    if (savedTargetRepo) setTargetRepo(savedTargetRepo);
+    if (savedGhToken) setGhToken(savedGhToken);
+    if (savedAutoCreate === "true") setAutoCreateIssue(true);
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem(TARGET_REPO_KEY, targetRepo);
+  }, [targetRepo]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem(GH_ISSUE_TOKEN, ghToken);
+  }, [ghToken]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem(AUTO_CREATE_ISSUE_KEY, autoCreateIssue ? "true" : "false");
+  }, [autoCreateIssue]);
 
   // STEP05.20.2: Responsive breakpoint detection
   useEffect(() => {
@@ -929,6 +965,85 @@ export default function MapClient() {
       setShowSharePackageFallback(true);
       setSnapMsg("⚠️ Clipboard blocked - use fallback below");
       setTimeout(() => setSnapMsg(""), 5000);
+    }
+  }
+
+  // STEP05.27: Create GitHub Issue (PM or Dev)
+  async function createGithubIssue(kind: "pm" | "dev") {
+    try {
+      // 1. Validate inputs
+      if (!targetRepo) {
+        setSnapMsg("❌ ERROR: Target Repo required");
+        setTimeout(() => setSnapMsg(""), 5000);
+        return;
+      }
+
+      if (!ghToken) {
+        setSnapMsg("❌ ERROR: GitHub Token required");
+        setTimeout(() => setSnapMsg(""), 5000);
+        return;
+      }
+
+      // 2. Ensure Package exists if autoCreateIssue is enabled
+      if (autoCreateIssue && (!lastPkgId || !lastPkgUrl)) {
+        setSnapMsg("📦 Creating Share Package first...");
+        await createSharePackage(kind); // Create package first
+        // Wait a bit for state to update
+        await new Promise((resolve) => setTimeout(resolve, 500));
+      }
+
+      // 3. Build issue body
+      const body = kind === "pm" ? buildIssuePM() : buildIssueDev();
+      const title = issueTitle || `[${kind.toUpperCase()}] ${new Date().toISOString().slice(0, 10)}`;
+
+      // 4. Build labels array (pm or dev + optional labels)
+      const labels = [kind, ...issueLabels];
+
+      // 5. POST to GitHub API
+      setSnapMsg("🚀 Creating GitHub Issue...");
+      const apiUrl = `https://api.github.com/repos/${targetRepo}/issues`;
+      const response = await fetch(apiUrl, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${ghToken}`,
+          "Accept": "application/vnd.github+json",
+          "X-GitHub-Api-Version": "2022-11-28",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          title,
+          body,
+          labels,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || `GitHub API error: ${response.status}`);
+      }
+
+      const issueData = await response.json();
+      const issueUrl = issueData.html_url;
+
+      // 6. Save issue URL to state
+      setLastIssueUrl(issueUrl);
+
+      // 7. Copy issue URL to clipboard
+      try {
+        await navigator.clipboard.writeText(issueUrl);
+        setSnapMsg(`✅ Issue created! URL copied to clipboard`);
+      } catch {
+        // Clipboard failed - still show success but warn
+        setSnapMsg(`✅ Issue created! URL: ${issueUrl} (manual copy)`);
+      }
+
+      setTimeout(() => setSnapMsg(""), 5000);
+
+      // 8. Optionally open issue in new tab
+      window.open(issueUrl, "_blank");
+    } catch (err: any) {
+      setSnapMsg(`❌ ERROR: ${err?.message ?? String(err)}`);
+      setTimeout(() => setSnapMsg(""), 7000);
     }
   }
 
@@ -2636,6 +2751,150 @@ export default function MapClient() {
                   }}
                 >
                   📋 Copy Issue (Dev)
+                </button>
+              </div>
+            </div>
+
+            {/* STEP05.27: GitHub Issue Auto-Create */}
+            <div style={{ marginTop: 10, borderTop: "1px solid #1f2937", paddingTop: 10 }}>
+              <div style={{ fontSize: 10, marginBottom: 6, color: "#9ca3af" }}>
+                Target Repo:
+              </div>
+              <input
+                type="text"
+                value={targetRepo}
+                onChange={(e) => setTargetRepo(e.target.value)}
+                placeholder="owner/repo (e.g., ajong3287/50_퀴즈도전개발)"
+                style={{
+                  width: "100%",
+                  padding: "6px 8px",
+                  background: "#0f172a",
+                  color: "#e2e8f0",
+                  border: "1px solid #263041",
+                  borderRadius: 4,
+                  fontSize: 10,
+                  marginBottom: 8,
+                }}
+              />
+
+              <div style={{ fontSize: 10, marginBottom: 6, color: "#9ca3af" }}>
+                GitHub Token (repo scope):
+              </div>
+              <input
+                type="password"
+                value={ghToken}
+                onChange={(e) => setGhToken(e.target.value)}
+                placeholder="ghp_..."
+                style={{
+                  width: "100%",
+                  padding: "6px 8px",
+                  background: "#0f172a",
+                  color: "#e2e8f0",
+                  border: "1px solid #263041",
+                  borderRadius: 4,
+                  fontSize: 10,
+                  marginBottom: 8,
+                }}
+              />
+
+              <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 10, color: "#9ca3af", cursor: "pointer", marginBottom: 8 }}>
+                <input
+                  type="checkbox"
+                  checked={autoCreateIssue}
+                  onChange={(e) => setAutoCreateIssue(e.target.checked)}
+                  style={{ cursor: "pointer" }}
+                />
+                Auto Create Issue (upload Package first)
+              </label>
+
+              <div style={{ fontSize: 9, color: "#6b7280", marginBottom: 8, lineHeight: 1.4 }}>
+                ℹ️ Token needs "repo" scope. Get token at{" "}
+                <a
+                  href="https://github.com/settings/tokens/new?scopes=repo&description=Neural%20Map%20Issue%20Creator"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ color: "#60a5fa", textDecoration: "underline" }}
+                >
+                  GitHub Settings
+                </a>
+              </div>
+
+              <div style={{ fontSize: 10, marginBottom: 6, color: "#9ca3af" }}>
+                Labels (optional):
+              </div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 8 }}>
+                {["bug", "enhancement", "blocked"].map((label) => (
+                  <label key={label} style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 9, color: "#9ca3af", cursor: "pointer" }}>
+                    <input
+                      type="checkbox"
+                      checked={issueLabels.includes(label)}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setIssueLabels([...issueLabels, label]);
+                        } else {
+                          setIssueLabels(issueLabels.filter((l) => l !== label));
+                        }
+                      }}
+                      style={{ cursor: "pointer" }}
+                    />
+                    {label}
+                  </label>
+                ))}
+              </div>
+
+              {lastIssueUrl && (
+                <a
+                  href={lastIssueUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    display: "block",
+                    fontSize: 9,
+                    color: "#10b981",
+                    marginBottom: 6,
+                    padding: "4px 6px",
+                    background: "rgba(16, 185, 129, 0.1)",
+                    borderRadius: 4,
+                    textDecoration: "none",
+                    cursor: "pointer",
+                  }}
+                >
+                  Last Issue: {lastIssueUrl}
+                </a>
+              )}
+
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                <button
+                  onClick={() => createGithubIssue("pm")}
+                  style={{
+                    flex: "1 1 160px",
+                    padding: "6px 12px",
+                    background: "#f59e0b",
+                    color: "#fff",
+                    border: "none",
+                    borderRadius: 8,
+                    fontSize: 11,
+                    cursor: "pointer",
+                    fontWeight: 600,
+                  }}
+                >
+                  🚀 Create Issue (PM)
+                </button>
+                <button
+                  onClick={() => createGithubIssue("dev")}
+                  style={{
+                    flex: "1 1 160px",
+                    padding: "6px 12px",
+                    background: "#8b5cf6",
+                    color: "#fff",
+                    border: "none",
+                    borderRadius: 8,
+                    fontSize: 11,
+                    cursor: "pointer",
+                    fontWeight: 600,
+                  }}
+                >
+                  🚀 Create Issue (Dev)
                 </button>
               </div>
             </div>
