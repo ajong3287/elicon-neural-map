@@ -968,9 +968,32 @@ export default function MapClient() {
     }
   }
 
-  // STEP05.27: Create GitHub Issue (PM or Dev)
+  // STEP05.27/05.28: Create GitHub Issue (PM or Dev) with Preflight Guards
   async function createGithubIssue(kind: "pm" | "dev") {
     try {
+      // STEP05.28.1: Always Auto-Save Snapshot (강제)
+      const currentUrl = typeof window !== "undefined" ? window.location.href : "";
+      const normalizedUrl = normalizeUrl(currentUrl);
+      let activeSnap = savedSnaps.find((s) => normalizeUrl(s.url) === normalizedUrl);
+
+      if (!activeSnap) {
+        const autoName = `Auto_${new Date().toISOString().slice(0, 19).replace(/[T:]/g, "_")}`;
+        const newSnap: SavedSnap = {
+          id: `snap_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
+          name: autoName,
+          url: currentUrl,
+          createdAt: new Date().toISOString(),
+        };
+
+        const updated = [newSnap, ...savedSnaps].slice(0, SNAP_STORE_LIMIT);
+        persistSavedSnaps(updated);
+        setSavedSnaps(updated);
+        activeSnap = newSnap;
+
+        setSnapMsg(`📸 Auto-saved snapshot: ${autoName}`);
+        await new Promise((resolve) => setTimeout(resolve, 500));
+      }
+
       // 1. Validate inputs
       if (!targetRepo) {
         setSnapMsg("❌ ERROR: Target Repo required");
@@ -984,12 +1007,46 @@ export default function MapClient() {
         return;
       }
 
-      // 2. Ensure Package exists if autoCreateIssue is enabled
-      if (autoCreateIssue && (!lastPkgId || !lastPkgUrl)) {
-        setSnapMsg("📦 Creating Share Package first...");
-        await createSharePackage(kind); // Create package first
-        // Wait a bit for state to update
-        await new Promise((resolve) => setTimeout(resolve, 500));
+      // STEP05.28.2: Preflight - GitHub Token Check
+      setSnapMsg("🔍 Verifying GitHub Token...");
+      try {
+        const tokenCheckResponse = await fetch("https://api.github.com/user", {
+          headers: {
+            "Authorization": `Bearer ${ghToken}`,
+            "Accept": "application/vnd.github+json",
+          },
+        });
+
+        if (!tokenCheckResponse.ok) {
+          throw new Error(
+            tokenCheckResponse.status === 401
+              ? "Token invalid/expired. Check scope: repo required"
+              : `Token check failed: ${tokenCheckResponse.status}`
+          );
+        }
+      } catch (err: any) {
+        setSnapMsg(`❌ ERROR: ${err?.message ?? "Token verification failed"}`);
+        setTimeout(() => setSnapMsg(""), 7000);
+        return;
+      }
+
+      // STEP05.28.3: Preflight - Share Package Upload (Best Effort)
+      let packageUploadSuccess = false;
+      if (autoCreateIssue) {
+        setSnapMsg("📦 Uploading Share Package...");
+        try {
+          await createSharePackage(kind);
+          await new Promise((resolve) => setTimeout(resolve, 500));
+          packageUploadSuccess = !!(lastPkgId && lastPkgUrl);
+        } catch (err) {
+          // Upload failed - continue with issue creation
+          packageUploadSuccess = false;
+        }
+
+        if (!packageUploadSuccess) {
+          setSnapMsg("⚠️ Package upload failed - Issue will still be created");
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+        }
       }
 
       // 3. Build issue body
@@ -1028,16 +1085,27 @@ export default function MapClient() {
       // 6. Save issue URL to state
       setLastIssueUrl(issueUrl);
 
-      // 7. Copy issue URL to clipboard
+      // STEP05.28.4: Clipboard Failure UX - Auto-open fallback with select()
       try {
         await navigator.clipboard.writeText(issueUrl);
         setSnapMsg(`✅ Issue created! URL copied to clipboard`);
+        setTimeout(() => setSnapMsg(""), 5000);
       } catch {
-        // Clipboard failed - still show success but warn
-        setSnapMsg(`✅ Issue created! URL: ${issueUrl} (manual copy)`);
-      }
+        // Clipboard failed - auto-open fallback textarea with select()
+        setIssueText(issueUrl);
+        setShowIssueFallback(true);
+        setSnapMsg(`✅ Issue created! (Clipboard blocked - auto-selected below)`);
+        setTimeout(() => setSnapMsg(""), 5000);
 
-      setTimeout(() => setSnapMsg(""), 5000);
+        // Auto-select the textarea content after a brief delay
+        setTimeout(() => {
+          const textarea = document.querySelector('textarea[readonly]') as HTMLTextAreaElement;
+          if (textarea) {
+            textarea.focus();
+            textarea.select();
+          }
+        }, 100);
+      }
 
       // 8. Optionally open issue in new tab
       window.open(issueUrl, "_blank");
