@@ -285,6 +285,9 @@ export default function MapClient() {
   const [issueLabels, setIssueLabels] = useState<string[]>([]);
   const [lastIssueUrl, setLastIssueUrl] = useState<string>("");
 
+  // STEP05.30: Stats Dashboard
+  const [stats, setStats] = useState<any>(null);
+
   // STEP05.11: Server snapshot state
   const [uploadToken, setUploadToken] = useState("");
 
@@ -372,6 +375,16 @@ export default function MapClient() {
     handler(mq);
     mq.addEventListener("change", handler);
     return () => mq.removeEventListener("change", handler);
+  }, []);
+
+  // STEP05.30: Fetch stats on mount
+  useEffect(() => {
+    fetch("/api/stats")
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.ok) setStats(data.stats);
+      })
+      .catch((err) => console.error("Stats fetch failed:", err));
   }, []);
 
   // STEP05.10: Save current snapshot
@@ -2848,6 +2861,72 @@ export default function MapClient() {
                 </button>
               </div>
             </div>
+
+            {/* STEP05.30: Stats Dashboard */}
+            {stats && (
+              <div style={{ marginTop: 10, borderTop: "1px solid #1f2937", paddingTop: 10 }}>
+                <div style={{ fontSize: 11, fontWeight: 600, color: "#e2e8f0", marginBottom: 8 }}>
+                  📊 02→50 운영 통계
+                </div>
+
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 8 }}>
+                  <div style={{ background: "#1e293b", padding: 8, borderRadius: 6 }}>
+                    <div style={{ fontSize: 9, color: "#94a3b8", marginBottom: 4 }}>Total Packages</div>
+                    <div style={{ fontSize: 16, fontWeight: 700, color: "#60a5fa" }}>{stats.totalPackages}</div>
+                  </div>
+                  <div style={{ background: "#1e293b", padding: 8, borderRadius: 6 }}>
+                    <div style={{ fontSize: 9, color: "#94a3b8", marginBottom: 4 }}>Issues Created</div>
+                    <div style={{ fontSize: 16, fontWeight: 700, color: "#34d399" }}>{stats.totalIssues}</div>
+                  </div>
+                </div>
+
+                <div style={{ marginBottom: 8 }}>
+                  <div style={{ fontSize: 9, color: "#94a3b8", marginBottom: 4 }}>Link Completion Rate</div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    <div style={{ flex: 1, height: 8, background: "#1e293b", borderRadius: 4, overflow: "hidden" }}>
+                      <div
+                        style={{
+                          width: `${stats.linkCompletionRate}%`,
+                          height: "100%",
+                          background: stats.linkCompletionRate >= 90 ? "#34d399" : stats.linkCompletionRate >= 70 ? "#fbbf24" : "#f87171",
+                          transition: "width 0.3s ease",
+                        }}
+                      />
+                    </div>
+                    <div style={{ fontSize: 12, fontWeight: 600, color: "#e2e8f0", minWidth: 40 }}>
+                      {stats.linkCompletionRate}%
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
+                  <div style={{ flex: 1, background: "#1e293b", padding: 6, borderRadius: 6 }}>
+                    <div style={{ fontSize: 9, color: "#94a3b8", marginBottom: 2 }}>PM</div>
+                    <div style={{ fontSize: 14, fontWeight: 600, color: "#f472b6" }}>{stats.byKind.pm}</div>
+                  </div>
+                  <div style={{ flex: 1, background: "#1e293b", padding: 6, borderRadius: 6 }}>
+                    <div style={{ fontSize: 9, color: "#94a3b8", marginBottom: 2 }}>Dev</div>
+                    <div style={{ fontSize: 14, fontWeight: 600, color: "#a78bfa" }}>{stats.byKind.dev}</div>
+                  </div>
+                </div>
+
+                {Object.keys(stats.byTargetRepo).length > 0 && (
+                  <div style={{ marginBottom: 8 }}>
+                    <div style={{ fontSize: 9, color: "#94a3b8", marginBottom: 4 }}>Top Target Repos</div>
+                    <div style={{ fontSize: 9, color: "#cbd5e1", lineHeight: 1.5 }}>
+                      {Object.entries(stats.byTargetRepo)
+                        .sort(([, a], [, b]) => (b as number) - (a as number))
+                        .slice(0, 3)
+                        .map(([repo, count]) => (
+                          <div key={repo} style={{ marginBottom: 2 }}>
+                            • {repo}: <span style={{ color: "#60a5fa", fontWeight: 600 }}>{count as number}</span>
+                          </div>
+                        ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* STEP05.27: GitHub Issue Auto-Create */}
             <div style={{ marginTop: 10, borderTop: "1px solid #1f2937", paddingTop: 10 }}>
