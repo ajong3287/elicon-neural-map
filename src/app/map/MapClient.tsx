@@ -1085,14 +1085,40 @@ export default function MapClient() {
       // 6. Save issue URL to state
       setLastIssueUrl(issueUrl);
 
+      // STEP05.29: Backlink issueUrl to existing package metadata
+      if (lastPkgId && shareUploadToken) {
+        try {
+          setSnapMsg("🔗 Linking Issue URL to Package...");
+          await fetch("/api/share-packages", {
+            method: "PATCH",
+            headers: {
+              "x-share-token": shareUploadToken,
+              "content-type": "application/json",
+            },
+            body: JSON.stringify({
+              id: lastPkgId,
+              issueUrl,
+              targetRepo,
+              issueTitle: title,
+            }),
+          });
+        } catch (patchErr) {
+          // Non-blocking: Package metadata update failed but issue created successfully
+          console.warn("Package metadata update failed:", patchErr);
+        }
+      }
+
+      // STEP05.29: Prepare clipboard text with Issue URL header
+      const clipboardText = `**Issue URL**: ${issueUrl}\n\n${issueUrl}`;
+
       // STEP05.28.4: Clipboard Failure UX - Auto-open fallback with select()
       try {
-        await navigator.clipboard.writeText(issueUrl);
+        await navigator.clipboard.writeText(clipboardText);
         setSnapMsg(`✅ Issue created! URL copied to clipboard`);
         setTimeout(() => setSnapMsg(""), 5000);
       } catch {
         // Clipboard failed - auto-open fallback textarea with select()
-        setIssueText(issueUrl);
+        setIssueText(clipboardText);
         setShowIssueFallback(true);
         setSnapMsg(`✅ Issue created! (Clipboard blocked - auto-selected below)`);
         setTimeout(() => setSnapMsg(""), 5000);
