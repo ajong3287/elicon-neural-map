@@ -279,11 +279,12 @@ export default function MapClient() {
   const [issueTitle, setIssueTitle] = useState<string>("");
 
   // STEP05.27: GitHub Issue Auto-Create state (with localStorage)
-  const [targetRepo, setTargetRepo] = useState<string>("ajong3287/50_퀴즈도전개발");
+  const [targetRepo, setTargetRepo] = useState<string>("ajong3287/elicon-neural-map");
   const [ghToken, setGhToken] = useState<string>("");
   const [autoCreateIssue, setAutoCreateIssue] = useState<boolean>(false);
   const [issueLabels, setIssueLabels] = useState<string[]>([]);
   const [lastIssueUrl, setLastIssueUrl] = useState<string>("");
+  const [showAdvanced, setShowAdvanced] = useState<boolean>(false);
 
   // STEP05.30: Stats Dashboard
   const [stats, setStats] = useState<any>(null);
@@ -2928,10 +2929,36 @@ export default function MapClient() {
               </div>
             )}
 
-            {/* STEP05.27: GitHub Issue Auto-Create */}
+            {/* Advanced Settings Toggle */}
             <div style={{ marginTop: 10, borderTop: "1px solid #1f2937", paddingTop: 10 }}>
-              <div style={{ fontSize: 10, marginBottom: 6, color: "#9ca3af" }}>
-                Target Repo:
+              <button
+                onClick={() => setShowAdvanced(!showAdvanced)}
+                style={{
+                  width: "100%",
+                  padding: "8px 12px",
+                  background: showAdvanced ? "#1e293b" : "#0f172a",
+                  color: "#9ca3af",
+                  border: "1px solid #263041",
+                  borderRadius: 6,
+                  fontSize: 11,
+                  cursor: "pointer",
+                  fontWeight: 600,
+                  textAlign: "left",
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                }}
+              >
+                <span>⚙️ Advanced: Issue Auto-Create</span>
+                <span>{showAdvanced ? "▼" : "▶"}</span>
+              </button>
+            </div>
+
+            {/* STEP05.27: GitHub Issue Auto-Create (Advanced) */}
+            {showAdvanced && (
+              <div style={{ marginTop: 10, borderTop: "1px solid #1f2937", paddingTop: 10 }}>
+                <div style={{ fontSize: 10, marginBottom: 6, color: "#9ca3af" }}>
+                  Target Repo:
               </div>
               <input
                 type="text"
@@ -3071,6 +3098,7 @@ export default function MapClient() {
                 </button>
               </div>
             </div>
+            )}
 
             {/* STEP05.22: Fallback Textarea (shown when clipboard fails) */}
             {showSharePackageFallback && (
