@@ -1350,8 +1350,11 @@ export default function MapClient() {
   useEffect(() => {
     (async () => {
       const r = await fetch("/graph.json", { cache: "no-store" });
+      if (!r.ok) return;  // STEP05.34: Ignore 404 errors (no graph data yet)
       const g = (await r.json()) as Graph;
-      setGraph(g);
+      if (g.nodes) {  // STEP05.34: Only set graph if it has valid nodes
+        setGraph(g);
+      }
     })();
   }, []);
 
