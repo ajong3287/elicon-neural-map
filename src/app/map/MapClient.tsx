@@ -1212,6 +1212,11 @@ export default function MapClient() {
   // STEP05.22/05.25: Create Share Package (unified PM/Dev with optional server upload)
   // Policy: Auto-save snapshot ONLY if no active snapshot exists
   async function createSharePackage(kind: "pm" | "dev") {
+    const label = kind === "pm" ? "PM" : "Dev";
+
+    // STEP05.32: Always show button click feedback
+    setSnapMsg(`🔄 Creating ${label} Package...`);
+
     try {
       // 1. Check if active snapshot exists
       const currentUrl = typeof window !== "undefined" ? window.location.href : "";
@@ -1239,10 +1244,10 @@ export default function MapClient() {
 
       // 3. Generate report based on kind
       let md = kind === "pm" ? buildPMReport() : buildDevReport();
-      const label = kind === "pm" ? "PM" : "Dev";
 
-      // 4. STEP05.25: Upload to server if autoUpload is enabled
+      // 4. STEP05.25/05.32: Upload to server if autoUpload is enabled
       if (autoUpload && shareUploadToken) {
+        setSnapMsg(`⬆️ Uploading ${label} Package...`);
         try {
           const uploadResponse = await fetch("/api/share-packages", {
             method: "POST",
@@ -1279,6 +1284,14 @@ export default function MapClient() {
           setTimeout(() => setSnapMsg(""), 5000);
           // Continue with local copy even if upload fails
         }
+      } else {
+        // STEP05.32: Show reason why upload is skipped
+        if (!autoUpload) {
+          setSnapMsg(`ℹ️ Auto Upload is OFF - clipboard only`);
+        } else if (!shareUploadToken) {
+          setSnapMsg(`⚠️ Share Upload Token missing - clipboard only`);
+        }
+        setTimeout(() => setSnapMsg(""), 3000);
       }
 
       // 5. Try clipboard copy
