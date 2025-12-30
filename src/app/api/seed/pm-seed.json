@@ -1,0 +1,62 @@
+{
+  "nodes": [
+    {
+      "id": "src/pages/Dashboard.tsx",
+      "label": "Dashboard.tsx",
+      "size": 4500,
+      "imports": ["src/services/api.ts", "src/components/Chart.tsx"],
+      "folder": "src/pages",
+      "ext": ".tsx"
+    },
+    {
+      "id": "src/services/api.ts",
+      "label": "api.ts",
+      "size": 2800,
+      "imports": ["src/models/User.ts"],
+      "folder": "src/services",
+      "ext": ".ts"
+    },
+    {
+      "id": "src/models/User.ts",
+      "label": "User.ts",
+      "size": 1500,
+      "imports": [],
+      "folder": "src/models",
+      "ext": ".ts"
+    },
+    {
+      "id": "src/components/Chart.tsx",
+      "label": "Chart.tsx",
+      "size": 3800,
+      "imports": ["src/utils/data.ts"],
+      "folder": "src/components",
+      "ext": ".tsx"
+    },
+    {
+      "id": "src/utils/data.ts",
+      "label": "data.ts",
+      "size": 1100,
+      "imports": [],
+      "folder": "src/utils",
+      "ext": ".ts"
+    }
+  ],
+  "links": [
+    {
+      "source": "src/pages/Dashboard.tsx",
+      "target": "src/services/api.ts"
+    },
+    {
+      "source": "src/pages/Dashboard.tsx",
+      "target": "src/components/Chart.tsx"
+    },
+    {
+      "source": "src/services/api.ts",
+      "target": "src/models/User.ts"
+    },
+    {
+      "source": "src/components/Chart.tsx",
+      "target": "src/utils/data.ts"
+    }
+  ]
+}

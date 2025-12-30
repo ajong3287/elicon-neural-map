@@ -1,0 +1,50 @@
+{
+  "nodes": [
+    {
+      "id": "src/components/Button.tsx",
+      "label": "Button.tsx",
+      "size": 2500,
+      "imports": ["src/hooks/useTheme.ts"],
+      "folder": "src/components",
+      "ext": ".tsx"
+    },
+    {
+      "id": "src/hooks/useTheme.ts",
+      "label": "useTheme.ts",
+      "size": 1200,
+      "imports": [],
+      "folder": "src/hooks",
+      "ext": ".ts"
+    },
+    {
+      "id": "src/utils/formatDate.ts",
+      "label": "formatDate.ts",
+      "size": 800,
+      "imports": [],
+      "folder": "src/utils",
+      "ext": ".ts"
+    },
+    {
+      "id": "src/components/Card.tsx",
+      "label": "Card.tsx",
+      "size": 3200,
+      "imports": ["src/components/Button.tsx", "src/utils/formatDate.ts"],
+      "folder": "src/components",
+      "ext": ".tsx"
+    }
+  ],
+  "links": [
+    {
+      "source": "src/components/Button.tsx",
+      "target": "src/hooks/useTheme.ts"
+    },
+    {
+      "source": "src/components/Card.tsx",
+      "target": "src/components/Button.tsx"
+    },
+    {
+      "source": "src/components/Card.tsx",
+      "target": "src/utils/formatDate.ts"
+    }
+  ]
+}
