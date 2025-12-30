@@ -1218,6 +1218,45 @@ export default function MapClient() {
     setSnapMsg(`🔄 Creating ${label} Package...`);
 
     try {
+      // STEP05.35: Seed test data first
+      setSnapMsg(`🌱 Seeding ${label} test data...`);
+      try {
+        const seedResponse = await fetch(`/api/seed?kind=${kind}`, {
+          cache: "no-store",
+        });
+
+        if (seedResponse.ok) {
+          const seedData = await seedResponse.json();
+          setSnapMsg(
+            `✅ Seeded ${seedData.nodes} nodes, ${seedData.links} links`
+          );
+
+          // Reload graph.json
+          const graphResponse = await fetch("/graph.json", {
+            cache: "no-store",
+          });
+          if (graphResponse.ok) {
+            const g = await graphResponse.json();
+            if (g.nodes) {
+              setGraph(g);
+            }
+          }
+
+          // Small delay to show seed success message
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+        } else {
+          // Seed failed, continue with existing graph
+          setSnapMsg(`⚠️ Seed failed, using existing graph`);
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+        }
+      } catch (seedErr) {
+        // Seed error, continue with existing graph
+        setSnapMsg(`⚠️ Seed error: ${String(seedErr)}`);
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+      }
+
+      setSnapMsg(`🔄 Creating ${label} Package...`);
+
       // 1. Check if active snapshot exists
       const currentUrl = typeof window !== "undefined" ? window.location.href : "";
       const normalizedUrl = normalizeUrl(currentUrl);
